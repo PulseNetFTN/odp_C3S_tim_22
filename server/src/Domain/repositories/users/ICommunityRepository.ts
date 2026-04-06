@@ -13,5 +13,4 @@ export interface ICommunityRepository
       searchByCommunityName(query: string): Promise<Community[]>;
       getCommunityFollowers(id: number): Promise<Community[]>;
       
-      banUser(userId: number): Promise<boolean>; //??
 }
