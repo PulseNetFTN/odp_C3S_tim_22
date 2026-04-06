@@ -1,4 +1,4 @@
-export class Tag
+export class TagDto
 {
     public constructor(
         public id: number = 0,

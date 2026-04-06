@@ -1,7 +1,6 @@
-import { asyncWrapProviders } from "node:async_hooks";
-import { CommunityRole } from "../enums/CommunityRole";
+import { CommunityRole } from "../../enums/CommunityRole";
 
-export class CommunityMember
+export class CommunityMemberDto
 {
     public constructor(
         public memberId: number = 0,
