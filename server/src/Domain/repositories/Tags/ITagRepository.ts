@@ -1,4 +1,4 @@
-import { Tag } from "../models/Tag";
+import { Tag } from "../../models/Tag";
 
 export interface ITagRepository {
     create(name: string): Promise<Tag>;

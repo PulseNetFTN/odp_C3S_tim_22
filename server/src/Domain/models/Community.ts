@@ -10,7 +10,6 @@ export class Community
         public communityType: CommunityType = CommunityType.Public,
         public icon: string | null = null,
         public creatorId: number = 0,
-        public memberCount:  number = 0,
         public createdAt: Date | null = null
     ){}
 }
