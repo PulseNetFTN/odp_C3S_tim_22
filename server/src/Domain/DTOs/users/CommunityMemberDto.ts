@@ -7,7 +7,7 @@ export class CommunityMemberDto
         public userId: number =0,
         public communityId: number =0,
         public status: 'active' | 'pending' | 'banned' = 'active',
-        public role: CommunityRole = CommunityRole.Member,
+        public role: 'member'|'moderator',
         public joinedAt: Date | null = null
    
     )

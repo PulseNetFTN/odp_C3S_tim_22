@@ -1,7 +1,7 @@
 import { TagDto } from "../../Domain/DTOs/users/TagDto";
 import { Tag } from "../../Domain/models/Tag";
 import { ITagRepository } from "../../Domain/repositories/Tags/ITagRepository";
-import { ITagService } from "../../Domain/services/tags/ITagService";
+import { ITagService } from "../../Domain/services/users/ITagService";
 import { ServiceResult } from "../../Domain/types/ServiceResult";
 
 export class TagService implements ITagService {
@@ -11,7 +11,7 @@ public constructor(private tagRepository: ITagRepository) {}
     {
         const tag: Tag = await this.tagRepository.getById(id);
 
-        if(tag.id==0)return{
+        if(tag.id)return{
             success: false,
             message: 'Tag Not Found'
         };
@@ -28,7 +28,7 @@ public constructor(private tagRepository: ITagRepository) {}
         const tags: Tag[] = await this.tagRepository.getAll();
                return {
                    success: true,
-                   data: tags.map(t => new TagDto(t.id, t.name)),
+                   data: tags.map(t => new TagDto(t.id, t.postid, t.name)),
                };
     }
     async deleteTag(id: number): Promise<ServiceResult<boolean>>
