@@ -24,8 +24,5 @@ export interface ICommunityService {
     deleteCommunity(id: number, requesterId: number): Promise<ServiceResult<boolean>>;
     joinCommunity(userId: number, communityId: number): Promise<ServiceResult<boolean>>;
     leaveCommunity(userId: number, communityId: number): Promise<ServiceResult<boolean>>;
-    getMembers(communityId: number): Promise<ServiceResult<CommunityMemberDto[]>>;
-    updateMemberRole(communityId: number, targetUserId: number, requesterId: number, role: string): Promise<ServiceResult<boolean>>;
-    updateMemberStatus(communityId: number, targetUserId: number, requesterId: number, status: string): Promise<ServiceResult<boolean>>;
-    removeMember(communityId: number, targetUserId: number, requesterId: number): Promise<ServiceResult<boolean>>;
+   
 }

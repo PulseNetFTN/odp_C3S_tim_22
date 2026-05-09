@@ -1,7 +1,7 @@
 import { TagDto } from "../../Domain/DTOs/users/TagDto";
 import { Tag } from "../../Domain/models/Tag";
 import { ITagRepository } from "../../Domain/repositories/Tags/ITagRepository";
-import { ITagService } from "../../Domain/services/users/ITagService";
+import { ITagService } from "../../Domain/services/tags/ITagService";
 import { ServiceResult } from "../../Domain/types/ServiceResult";
 
 export class TagService implements ITagService {

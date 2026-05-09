@@ -1,10 +1,11 @@
 import { TagDto } from "../../DTOs/users/TagDto";
 import { ServiceResult } from "../../types/ServiceResult";
+import { DeleteTagInput, UpdateTagInput } from "../../types/inputs/TagsInputs";
 
 export interface ITagService {
     getAllTags(): Promise<ServiceResult<TagDto[]>>;
-    updateTag(id: number, name: string): Promise<ServiceResult<boolean>>;
-    deleteTag(id: number): Promise<ServiceResult<boolean>>;
+    updateTag(input: UpdateTagInput): Promise<ServiceResult<boolean>>;
+    deleteTag(input: DeleteTagInput): Promise<ServiceResult<boolean>>;
 }
  
  

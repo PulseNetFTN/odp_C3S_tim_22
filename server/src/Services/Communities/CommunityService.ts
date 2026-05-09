@@ -87,26 +87,5 @@ export class CommunityService implements ICommunityService{
     {
 
     }
-    async getMembers(communityId: number): Promise<ServiceResult<CommunityMemberDto[]>>
-    {
-        
-    }
-    async updateMemberRole(communityId: number, targetUserId: number, requesterId: number, role: string): Promise<ServiceResult<boolean>>
-    {
 
-    }
-    async updateMemberStatus(communityId: number, targetUserId: number, requesterId: number, status: string): Promise<ServiceResult<boolean>>
-    {
-
-    }
-
-
-    async removeMember(communityId: number, targetUserId: number, requesterId: number): Promise<ServiceResult<boolean>>
-    {
-        const result = await this.communityRepository.removeMember(targetUserId,communityId);
-        if (!result) {
-            return { success: false, message: 'Failed', statusCode: 400 };
-        }
-        return { success: true};
-    }
 }
