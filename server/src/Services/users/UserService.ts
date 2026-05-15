@@ -3,6 +3,7 @@ import { ErrorCode } from '../../Domain/enums/ErrorCode';
 import { User } from '../../Domain/models/User';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
 import { IUserFollowRepository } from '../../Domain/repositories/users/IUserFollowRepository';
+import { IAuditService } from '../../Domain/services/audit/IAuditService';
 import { IUserService } from '../../Domain/services/users/IUserService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
 import {
@@ -18,7 +19,8 @@ import {
 export class UserService implements IUserService {
     public constructor(
         private userRepository: IUserRepository,
-        private userFollowRepository: IUserFollowRepository
+        private userFollowRepository: IUserFollowRepository,
+        private auditService: IAuditService
     ) {}
 
 
@@ -67,11 +69,23 @@ export class UserService implements IUserService {
         if (!existing) {
             return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };
         }
+        const oldRole = existing.role;
+
         const result = await this.userRepository.updateRole(input.userId, input.role);
         if (!result) {
             return { success: false, message: 'Role update failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
-        return { success: true, data: true };  
+
+        await this.auditService.log({
+            userId: input.userId,
+            action: 'ROLE_CHANGED',
+            entityType: 'user',
+            entityId: input.userId,
+            details: JSON.stringify({ oldRole, newRole: input.role }),
+        });
+ 
+        return { success: true, data: true };        
+ 
     }
 
     async searchUsers(input: SearchUsersInput): Promise<ServiceResult<UserDto[]>> {
@@ -118,7 +132,7 @@ export class UserService implements IUserService {
         return { success: true, data: users.map(u => this.toDto(u)) };        
     }
 
-    async getFollowing(input: GetFollowingInput): Promise<ServiceResult<UserDto[]>> {
+     async getFollowing(input: GetFollowingInput): Promise<ServiceResult<UserDto[]>> {
         const ids = await this.userFollowRepository.getFollowingIds(input.userId);
         if (ids.length === 0) return { success: true, data: [] };
         const users = await this.userRepository.getByIds(ids);

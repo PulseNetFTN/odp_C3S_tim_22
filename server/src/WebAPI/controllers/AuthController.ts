@@ -3,15 +3,18 @@ import { IAuthService } from '../../Domain/services/auth/IAuthService';
 import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { validateLogin, validateRegister } from '../validators/AuthValidator';
 import { sendServiceResult } from '../helpers/responseHelper';
+import { IAuditService } from '../../Domain/services/audit/IAuditService';
 import jwt from 'jsonwebtoken';
 
 export class AuthController {
     private router: Router;
     private authService: IAuthService;
+   
 
-    constructor(authService: IAuthService) {
+    constructor(authService: IAuthService, private auditService: IAuditService) {
         this.router = Router();
         this.authService = authService;
+        this.auditService = this.auditService;
         this.initializeRoutes();
     }
 
@@ -79,7 +82,14 @@ export class AuthController {
 
     private async logout(req: Request, res: Response): Promise<void> {
         try {
-            // TODO: audit log za odjavu            
+        await this.auditService.log({
+            userId: req.user!.id,
+            action: 'LOGOUT',
+            entityType: 'user',
+            entityId: req.user!.id,
+            ipAddress: req.ip ?? undefined,
+            userAgent: req.headers['user-agent'] ?? undefined,
+        });     
             res.status(200).json({ success: true, message: 'Logout successful' });
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
