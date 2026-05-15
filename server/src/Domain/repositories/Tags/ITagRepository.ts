@@ -1,9 +1,8 @@
 import { Tag } from "../../models/Tag";
-import { CreateTagInput,GetByIdTagInput, DeleteTagInput } from "../../types/inputs/TagsInputs";
 
 export interface ITagRepository {
-    create(input:CreateTagInput): Promise<Tag>;
+    create(name:string): Promise<Tag>;
     getAll(): Promise<Tag[]>;
-    getById(input: GetByIdTagInput): Promise<Tag>;
-    delete(input: DeleteTagInput): Promise<boolean>;
+    getById(id:number): Promise<Tag>;
+    delete(id:number): Promise<boolean>;
 }

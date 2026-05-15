@@ -2,77 +2,36 @@ import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { UserRole } from "../../../Domain/enums/UserRole";
 import { Community } from "../../../Domain/models/Community";
 import { CommunityMember } from "../../../Domain/models/CommunityMember";
-import { ICommunityRepository } from "../../../Domain/repositories/users/ICommunityRepository";
+import { ICommunityRepository } from "../../../Domain/repositories/communities/ICommunityRepository";
 import { getReadConnection, getWriteConnection } from "../../connection/DbConnectionPool";
+import { BaseRepository } from "../BaseRepository";
+import { mapCommunity,COMMUNITY_FIELDS } from '../../mappers/CommunityMapper';
+import { mapCommunityMember,COMMUNITY_MEMBER_FIELDS } from '../../mappers/CommunityMemberMapper';
 
-export class CommunityRepository implements ICommunityRepository
+
+export class CommunityRepository extends BaseRepository implements ICommunityRepository
 {
-      async create(community: Community): Promise<Community>
+      async create(community: Community): Promise<Community | null>
       {      
-      try {
-            const conn = getWriteConnection();
-            if (!conn.success || !conn.data) return new Community();
-            const [result] = await conn.data.execute<ResultSetHeader>(
+            const result = await this.executeWrite(
                 'INSERT INTO communities (name, description, rules, type, avatar, creator_id,created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 [community.communityName, community.description, community.rules, community.communityType, community.icon, community.creatorId, community.createdAt]
             );
-            if (result.insertId) {
-                return new Community(result.insertId, community.communityName, community.description, community.rules, community.communityType, community.icon, community.creatorId, community.createdAt);
-            }
-            return new Community();
-        } catch {
-            return new Community();
-        }
+            if (!result?.insertId)return null; 
+            return new Community(result.insertId, community.communityName, community.description, community.rules, community.communityType, community.icon, community.creatorId, community.createdAt);
       }
-      async getById(id: number): Promise<Community>
+      async getById(id: number): Promise<Community | null>
       {
-        try {
-            const conn = getReadConnection();
-            if (!conn.success || !conn.data) return new Community();
-            const [rows] = await conn.data.execute<RowDataPacket[]>(
-                'SELECT id,name, description, rules, type, avatar, creator_id,created_at FROM communities WHERE id = ?',
-                [id]
-            );
-            if (rows.length > 0) {
-                const r = rows[0];
-                return new Community(r.id,r.name, r.description, r.rules, r.type, r.avatar, r.creator_id, r.created_at);
-            }
-            return new Community();
-        } catch {
-            return new Community();
-        }
+                return this.executeReadOne(`SELECT ${COMMUNITY_FIELDS} FROM communities WHERE id = ?`,  [id],mapCommunity);
       }
       async getAll(): Promise<Community[]>
       {
-         try {
-                    const conn = getReadConnection();
-                    if (!conn.success || !conn.data) return [];
-                    const [rows] = await conn.data.execute<RowDataPacket[]>(
-                        'SELECT id,name, description, rules, type, avatar, creator_id,created_at FROM communities ORDER BY id ASC'
-                    );
-                    return rows.map(r => new Community(r.id,r.name, r.description, r.rules, r.type, r.avatar, r.creator_id, r.created_at));
-                } catch {
-                    return [];
-                }        
+        return this.executeRead(`SELECT ${COMMUNITY_FIELDS} FROM communities ORDER BY id ASC`,[],mapCommunity);   
       }
 
       async getPublic(): Promise<Community[]>
       {
-        try {
-            const conn = getReadConnection();
-            if (!conn.success || !conn.data) return [];
-            const [rows] = await conn.data.execute<RowDataPacket[]>(
-                `SELECT id, name, description, rules, type, avatar, creator_id, created_at FROM communities WHERE type LIKE 'public'`,
-
-            );
-            if (rows.length > 0) {
-                const r = rows[0];
-                 return rows.map(r => new Community(r.id,r.name, r.description, r.rules, r.type, r.avatar, r.creator_id, r.created_at));
-            }
-            return [];
-        } catch {
-            return [];
-        }
+                return this.executeRead(`SELECT ${COMMUNITY_FIELDS} FROM communities WHERE type LIKE 'public'`,[],mapCommunity);
       }
 
       async getByUserId(userId: number): Promise<Community[]>
@@ -99,36 +58,23 @@ export class CommunityRepository implements ICommunityRepository
 
       }
 
-      async update(communityName: Community): Promise<Community>
+      async update(communityName: Community): Promise<Community | null>
       {
-        try {
-                    const conn = getWriteConnection();
-                    if (!conn.success || !conn.data) return new Community();
-                    const [result] = await conn.data.execute<ResultSetHeader>(
-                        'UPDATE communities SET communityName = ?, description = ?, rules = ?, communityType = ?, icon = ?, creatorId = ?,createdAt = ? WHERE id = ?',
+
+        const result = await this.executeWrite( 'UPDATE communities SET name = ?, description = ?, rules = ?, type = ?, icon = ?, creator_id = ?,created_at = ? WHERE id = ?',
                         [communityName.communityName, communityName.description, communityName.rules, communityName.communityType, communityName.icon, communityName.creatorId, communityName.createdAt, communityName.id]
-                    );
-                    if (result.affectedRows > 0) return communityName;
-                    return new Community();
-                } catch {
-                    return new Community();
-                }
+        );
+        if(!result || result.affectedRows === 0) return null;
+
+        return communityName;
+
       }
 
       async delete(id: number): Promise<boolean>
       {
-         try {
-            const conn = getWriteConnection();
-            if (!conn.success || !conn.data) return false;
-            const [result] = await conn.data.execute<ResultSetHeader>(
-                'DELETE FROM communities WHERE id = ?',
-                [id]
-            );
-            return result.affectedRows > 0;
-        } catch {
-            return false;
+                const result = await this.executeWrite('DELETE FROM communities WHERE id = ?',[id]);
+                return (result?.affectedRows ?? 0) > 0;
         }
-      }
       async getMemberCount(id: number): Promise<number>
       {
          try {
@@ -186,89 +132,62 @@ export class CommunityRepository implements ICommunityRepository
       }
 
       async getMemberUserIds(communityId: number): Promise<number[]> {
-        try {
-        const conn = getReadConnection();
-        if (!conn.success || !conn.data) return [];
-        const [rows] = await conn.data.execute<RowDataPacket[]>(
+        const rows = await this.executeRead(
             `SELECT cm.user_id
             FROM community_members cm
             WHERE cm.community_id = ?`,
-            [communityId]
-        );
-    
+            [communityId],mapCommunityMember
+        );    
         if (rows.length > 0) {
-            return rows.map(r => r.user_id);  
+            return rows.map(r => r.);  
         }
-        return [];
-    } catch {
-        return [];
-    }
       }
       async addMember(userId: number, communityId: number, userRole:UserRole, status:string): Promise<boolean>
       {
-            try {
-        const conn = getWriteConnection();
-        if (!conn.success || !conn.data) return false;
+
         const role = userRole === UserRole.Admin ? 'moderator' : 'member';
 
-        const [result] = await conn.data.execute<ResultSetHeader>(
+        const result = await this.executeWrite(
             `INSERT INTO community_members (user_id, community_id, role, status)
              VALUES (?, ?, ?, ?)`,
-            [userId, communityId, role, status]
-        );
+            [userId, communityId, role, status]);
+        
 
-        return result.affectedRows > 0;
-    } catch {
-        return false;
-    }
+        return (result?.affectedRows ?? 0) > 0;
+
       }
 async updateMemberRole(userId: number, communityId: number, userRole: UserRole): Promise<boolean> {
-    try {
-        const conn = getWriteConnection();
-        if (!conn.success || !conn.data) return false;
+
         const role = userRole === UserRole.Admin ? 'moderator' : 'member';
 
-        const [result] = await conn.data.execute<ResultSetHeader>(
+        const result = await this.executeWrite(
             `UPDATE community_members 
              SET role = ? 
              WHERE user_id = ? AND community_id = ?`,
             [role, userId, communityId]
         );
 
-        return result.affectedRows > 0;
-    } catch {
-        return false;
-    }
+        return (result?.affectedRows ?? 0) > 0;
+
 }
   async updateMemberStatus(userId: number, communityId: number, status: string): Promise<boolean> {
-    try {
-        const conn = getWriteConnection();
-        if (!conn.success || !conn.data) return false;
-
-        const [result] = await conn.data.execute<ResultSetHeader>(
+    {
+           const result = await this.executeWrite( 
             `UPDATE community_members 
              SET status = ? 
              WHERE user_id = ? AND community_id = ?`,
-            [status, userId, communityId]
-        );
-
-        return result.affectedRows > 0;
-    } catch {
-        return false;
+            [status, userId, communityId]);
+        
+        return (result?.affectedRows ?? 0)> 0;
     }
 }
       async removeMember(userId: number, communittyId: number): Promise<boolean> {
-        try {
-            const conn = getWriteConnection();
-            if (!conn.success || !conn.data) return false;
-            const [result] = await conn.data.execute<ResultSetHeader>(
+      
+            const result = await this.executeWrite(
                 'DELETE FROM community_members WHERE user_id = ? AND community_id = ?',
-                [userId, communittyId]
-            );
-        return result.affectedRows > 0;
-    } catch {
-        return false;
-    }
+                [userId, communittyId]);    
+        return (result?.affectedRows ?? 0) > 0;
+    
 }
 
       
