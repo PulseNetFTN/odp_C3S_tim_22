@@ -1,48 +1,44 @@
 import { TagDto } from "../../Domain/DTOs/users/TagDto";
+import { ErrorCode } from "../../Domain/enums/ErrorCode";
 import { Tag } from "../../Domain/models/Tag";
 import { ITagRepository } from "../../Domain/repositories/Tags/ITagRepository";
 import { ITagService } from "../../Domain/services/tags/ITagService";
+import { DeleteTagInput, UpdateTagInput } from "../../Domain/types/inputs/TagInputs";
 import { ServiceResult } from "../../Domain/types/ServiceResult";
 
 export class TagService implements ITagService {
 public constructor(private tagRepository: ITagRepository) {}
 
-    async updateTag(id:number, name: string): Promise<ServiceResult<boolean>>
+    async updateTag(input: UpdateTagInput): Promise<ServiceResult<boolean>>
     {
-        const tag: Tag = await this.tagRepository.getById(id);
+        const existingtag = await this.tagRepository.getById(input.id);
+        if(!existingtag)return {success:false,message: 'Tag not found', errorCode: ErrorCode.NOT_FOUND};
 
-        if(tag.id)return{
-            success: false,
-            message: 'Tag Not Found'
-        };
-        
-       return{
+        const result = await this.tagRepository.update(new Tag (input.id,input.name)); 
+        if(!result)
+            {
+                return {success: false,message:'Name update failed',errorCode: ErrorCode.INTERNAL_ERROR}
+            }
 
-        success:true,
-        message: 'Tag Deleted'
-       }
+            //audit
 
+            return{success: true, data: true};
     }
     async getAllTags(): Promise<ServiceResult<TagDto[]>>
     {
-        const tags: Tag[] = await this.tagRepository.getAll();
-               return {
-                   success: true,
-                   data: tags.map(t => new TagDto(t.id, t.postid, t.name)),
-               };
+        const tags = await this.tagRepository.getAll();
+        return {success: true, data: tags.map(u => this.toDto(u))};
     }
-    async deleteTag(id: number): Promise<ServiceResult<boolean>>
+
+    async deleteTag(input:DeleteTagInput): Promise<ServiceResult<boolean>>
     {
-        const tagExists: boolean = await this.tagRepository.delete(id);
+        const tagexists = await this.tagRepository.delete(input.id);
 
-        if(!tagExists)return {
-            success: false,
-            data: false
-
-        }
-        else return {
-            success: true,
-            data: true
-        };
+        if(!tagexists) return{ success: false, message:'Tag not found',errorCode:ErrorCode.NOT_FOUND}
+        return{ success: true, data:true};
     }
+
+        private toDto(t: Tag): TagDto {
+            return new TagDto(t.id, t.name);
+        }
 }

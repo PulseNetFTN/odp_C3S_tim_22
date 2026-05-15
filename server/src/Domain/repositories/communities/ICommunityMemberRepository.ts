@@ -4,8 +4,8 @@ import { UserRole } from "../../enums/UserRole";
 
 export interface ICommunityMemberRepository
 {
-      getMemberCount(communityId: number): Promise<number>;
-      getMember(userId: number, communityId: number): Promise<CommunityMember>;
+      getMemberCount(communityId: number): Promise<number | null>;
+      getMember(userId: number, communityId: number): Promise<CommunityMember | null>;
       getMembers(communityId:number): Promise<CommunityMember[]>;
       getMemberUserIds(communityId:number): Promise<number[]>;
       addMember(userId: number, communityId: number, userRole:UserRole, status:string): Promise<boolean>;

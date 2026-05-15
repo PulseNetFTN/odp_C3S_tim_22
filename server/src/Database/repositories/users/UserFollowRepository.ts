@@ -1,5 +1,5 @@
 import { BaseRepository } from '../BaseRepository';
-import { IUserFollowRepository } from '../../../Domain/repositories/users/IUserFollowRepository.ts';
+import { IUserFollowRepository } from '../../../Domain/repositories/users/IUserFollowRepository';
 import { RowDataPacket } from 'mysql2';
 
 export class UserFollowRepository extends BaseRepository implements IUserFollowRepository {
