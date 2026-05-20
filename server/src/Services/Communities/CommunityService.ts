@@ -141,7 +141,7 @@ export class CommunityService implements ICommunityService{
         private buildCommunityDto(com: Community): CommunityDto  {
             const members = this.communityMemberRepository.getMembers(com.id);
             
-            //KAKO DA DOBIJEM LENGTH AAAAAAA
+           // kako da dobijem length raaaahhh
 
         return new CommunityDto(com.id,com.communityName,com.description,com.rules,com.communityType,com.icon, com.creatorId,0,com.createdAt);
     }

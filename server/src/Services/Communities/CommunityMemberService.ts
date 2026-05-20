@@ -46,7 +46,7 @@ export class CommunityMemberService implements ICommunityMemberService{
         return { success: true, data: true };        
     }
     async updateMemberStatus(input: UpdateCommunityMemberStatusInput): Promise<ServiceResult<boolean>> {
-        const existing = await this.communityMemberRepository.getMember(input.targetUserId);
+        const existing = await this.communityMemberRepository.getMember(input.targetUserId,input.communityId);
         if (!existing) {
             return { success: false, message: 'Member not found', errorCode: ErrorCode.NOT_FOUND };
         }

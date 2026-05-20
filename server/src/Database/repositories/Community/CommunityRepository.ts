@@ -2,11 +2,11 @@ import { Community } from "../../../Domain/models/Community";
 import { ICommunityRepository } from "../../../Domain/repositories/communities/ICommunityRepository";
 import { BaseRepository } from "../BaseRepository";
 import { mapCommunity,COMMUNITY_FIELDS } from '../../mappers/CommunityMapper';
-
-//GET BY USER ID MORA JOIN FIGURE IT OUT SOMETIME
+import { COMMUNITY_MEMBER_FIELDS, mapCommunityMember } from "../../mappers/CommunityMemberMapper";
 
 export class CommunityRepository extends BaseRepository implements ICommunityRepository
 {
+     
       async create(community: Community): Promise<Community | null>
       {      
             const result = await this.executeWrite(
@@ -20,6 +20,17 @@ export class CommunityRepository extends BaseRepository implements ICommunityRep
       {
             return this.executeReadOne(`SELECT ${COMMUNITY_FIELDS} FROM communities WHERE id = ?`,  [id],mapCommunity);
       }
+
+      async getByIds(ids: number[]): Promise<Community[]> {
+           if (!ids || ids.length === 0) return [];
+        const placeholders = ids.map(() => '?').join(',');
+        const result = await this.executeRead(
+            `SELECT ${COMMUNITY_FIELDS} FROM comunities WHERE id IN (${placeholders})`,
+            ids,
+            mapCommunity
+        );
+        return result;
+      }
       async getAll(): Promise<Community[]>
       {
             return this.executeRead(`SELECT ${COMMUNITY_FIELDS} FROM communities ORDER BY id ASC`,[],mapCommunity);   
@@ -32,19 +43,9 @@ export class CommunityRepository extends BaseRepository implements ICommunityRep
 
       async getByUserId(userId: number): Promise<Community[]>
       {
-            /*
-            const [rows] = await conn.data.execute<RowDataPacket[]>(
-               `SELECT c.id, c.name, c.description, c.rules, c.type, c.avatar, c.creator_id, c.created_at
-                            FROM communities c
-                            INNER JOIN community_members cm ON cm.community_id = c.id
-                            WHERE cm.user_id = ? 
-                         `,[userId]
-            );
-            
-            */
-           //joinnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn 
-
-
+            const ids = await this.executeRead(`SELECT community_id FROM communitiy_members WHERE user_id = ?`,[userId],Number);
+            if(!ids || ids.length === 0) return[];
+            return this.getByIds(ids);
       }
 
       async update(communityName: Community): Promise<Community | null>
