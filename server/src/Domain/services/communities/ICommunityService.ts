@@ -1,5 +1,5 @@
-import { CommunityDto } from "../../DTOs/users/CommunityDto";
-import { CommunityMemberDto } from "../../DTOs/users/CommunityMemberDto";
+import { CommunityDto } from "../../DTOs/community/CommunityDto";
+import { CommunityMemberDto } from "../../DTOs/community/CommunityMemberDto";
 import { CreateCommunityInput, DeleteCommunityInput, GetCommunityByIdInput, GetUserCommunitiesInput, JoinCommunityInput, LeaveCommunityInput, UpdateCommunityInput } from "../../types/inputs/CommunityInputs";
 import { ServiceResult } from "../../types/ServiceResult";
 

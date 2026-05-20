@@ -1,3 +1,6 @@
+import { CommunityType } from "../../enums/CommunityType";
+import { UserRole } from "../../enums/UserRole";
+
 export type GetCommunityMembersInput = {
     communityId: number;
 }
@@ -5,7 +8,7 @@ export type UpdateCommunityMemberRoleInput = {
     communityId: number;
     targetUserId: number;
     requesterId: number;
-    role: string;
+    role: UserRole;
 }
 
 export type UpdateCommunityMemberStatusInput = {
@@ -27,7 +30,7 @@ export type CreateCommunityInput = {
     description: string | null;
     rules: string | null;
     avatar: string | null;
-    type: 'public' | 'private';
+    type: CommunityType;
     creatorId: number;
 }
 
