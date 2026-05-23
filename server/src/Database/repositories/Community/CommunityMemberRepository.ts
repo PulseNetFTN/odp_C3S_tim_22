@@ -4,14 +4,13 @@ import { BaseRepository } from "../BaseRepository";
 import { mapCommunityMember,COMMUNITY_MEMBER_FIELDS } from '../../mappers/CommunityMemberMapper';
 import { ICommunityMemberRepository } from "../../../Domain/repositories/communities/ICommunityMemberRepository";
 
-//PROVERITI DA LI OVE FUNKCIJE TREBA DA VRATE MEMBERA ILI USERA
 
 export class CommunityMemberRepository extends BaseRepository implements ICommunityMemberRepository
 {
 async getMemberCount(id: number): Promise<number | null>
       {
          return this.executeScalar
-         ('SELECT COUNT(*) FROM community_members WHERE community_id = ?',[id]);
+         ('SELECT COUNT(*) FROM community_members WHERE community_id = ?',[id]) ?? 0;
       }
       async getMember(userId: number, communityId: number): Promise<CommunityMember | null>
       {

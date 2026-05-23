@@ -12,7 +12,5 @@ export class CommunityDto
         public creatorId: number = 0,
         public membercount: number = 0,
         public createdAt: Date | null = null
-
-
     ){}
 }
