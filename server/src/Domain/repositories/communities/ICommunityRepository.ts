@@ -8,6 +8,7 @@ export interface ICommunityRepository
       getAll(): Promise<Community[]>;
       getPublic(): Promise<Community[]>;
       getByUserId(userId: number):Promise<Community[]>;
+      searchByName(query: string): Promise<Community[]>;
       update(communityName: Community): Promise<Community|null>;
       delete(id: number): Promise<boolean>;
 
