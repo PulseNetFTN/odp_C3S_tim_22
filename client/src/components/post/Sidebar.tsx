@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Compass, Info, HelpCircle, Shield, Users, FileText, Activity, Tag, ChevronDown, ChevronUp, Menu } from 'lucide-react';
+import { Home, Compass, Info, HelpCircle, Activity, ChevronDown, ChevronUp, Menu } from 'lucide-react';
 import { useState } from 'react';
 import { FEED} from '../../constants/feed';
 
@@ -49,11 +49,6 @@ function buildSections(isLoggedIn: boolean, isAdmin: boolean, userCommunities: {
             collapsible: true,
             items: [
                 { label: 'Dashboard', path: '/admin', icon: <Activity {...iconProps()} /> },
-                { label: 'Users', path: '/admin/users', icon: <Users {...iconProps()} /> },
-                { label: 'Communities', path: '/admin/communities', icon: <Shield {...iconProps()} /> },
-                { label: 'Audit Log', path: '/admin/audit', icon: <FileText {...iconProps()} /> },
-                { label: 'Health', path: '/admin/health', icon: <Activity {...iconProps()} /> },
-                { label: 'Tags', path: '/admin/tags', icon: <Tag {...iconProps()} /> },
             ],
         });
     }

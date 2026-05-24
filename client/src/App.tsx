@@ -7,6 +7,9 @@ import FeedPage from './pages/feed/FeedPage';
 import AboutPage from './pages/info/AboutPage';
 import HelpPage from './pages/info/HelpPage';
 import NotFoundPage from './pages/not_found/NotFoundPage';
+import ProfilePage from './pages/profile/ProfilePage';
+import CommentsPage from './pages/comments/CommentsPage';
+import AdminDashboard from './pages/admin/AdminDashboardPage';
 
 export default function App() {
     return (
@@ -18,15 +21,36 @@ export default function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/help" element={<HelpPage />} />     
             <Route path="/feed" element={<FeedPage />} />
+            <Route path="/profile/:userId" element={<ProfilePage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            
+            <Route
+                path="/post/:postId/comments"
+                element={
+                    //<ProtectedRoute requiredRole="user">
+                        <CommentsPage />
+                    //</ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/feed"
+                element={
+                    <ProtectedRoute requiredRole="user">
+                        <div style={{ color: 'white' }}>Feed — coming soon</div>
+                    </ProtectedRoute>
+                }
+            />
 
             <Route
                 path="/admin"
                 element={
-                    <ProtectedRoute requiredRole="admin">
-                        <div style={{ color: 'white' }}>Admin coming soon</div>
-                    </ProtectedRoute>
+                    //<ProtectedRoute requiredRole="admin">
+                        <AdminDashboard />
+                    //</ProtectedRoute>
                 }
             />
+
 
             <Route path="/404" element={<NotFoundPage />} />
             <Route path="*" element={<Navigate to="/404" replace />} />
