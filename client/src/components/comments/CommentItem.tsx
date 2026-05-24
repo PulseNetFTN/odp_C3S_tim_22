@@ -1,309 +1,221 @@
-import React, { useState } from 'react';
-import { CommentAPIService } from '../../api_services/comments/CommentAPIService';
+// src/components/comments/CommentItem.tsx
+import { useState } from 'react';
 import type { CommentDto } from '../../models/comments/CommentDTO';
-import { CommentLikeButton } from './CommentLikeButton';
-import { CommentEditForm } from './CommentEditForm';
-import { CommentReplyForm } from './CommentReplyForm';
-import { DeletedComment } from './DeletedComment';
-import type { ICommentsAPIService } from '../../api_services/comments/ICommentAPIService';
+import CommentActions from './CommentActions';
+import CommentForm from './CommentEditForm';
+import CollapsibleReplies from './CollapsibleReplies';
 
-interface Props {
-  comment: CommentDto;
-  currentUserId?: number;
-  token: string;
-  onReply: (id: number) => void;
-  onCommentUpdate: () => void;
-  isReplying: boolean;
-  replyContent: string;
-  setReplyContent: (v: string) => void;
-  onSubmitReply: (parentId: number) => void;
-  isModerator?: boolean;
-  isNested?: boolean;
+interface CommentItemProps {
+    comment: CommentDto;
+    depth?: number;
+    replyCount?: number;
+    currentUserId?: number | null;
+    isAuthenticated: boolean;
+    onReply: (parentId: number, content: string) => Promise<boolean>;
+    onEdit: (id: number, content: string) => Promise<boolean>;
+    onDelete: (id: number) => Promise<boolean>;
+    onLike: (id: number, isLiked: boolean) => void;
 }
 
-export function CommentItem({
-  comment, currentUserId, token,
-  onReply, onCommentUpdate,
-  isReplying, replyContent, setReplyContent, onSubmitReply,
-  isModerator = false, isNested = false,
-}: Props) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [hovered,   setHovered]   = useState(false);
+function formatDate(dateStr: string): string {
+    if (!dateStr) return 'recent';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
-  const isDeleted = !comment.content
-    || comment.content === '[deleted]'
-    || comment.content === '[comment removed]';
-  const isAuthor  = currentUserId === comment.authorId;
-  const canEdit   = isAuthor || isModerator;
-  const hasReplies = (comment.replies?.length ?? 0) > 0;
+function getInitials(username: string): string {
+    if (!username) return '?';
+    return username.slice(0, 2).toUpperCase();
+}
 
-  const handleSave = async (newContent: string) => {
-    await CommentAPIService.updateComment(comment.id, newContent, token);
-    setIsEditing(false);
-    onCommentUpdate();
-  };
+export default function CommentItem({
+    comment,
+    depth = 0,
+    replyCount = 0,
+    currentUserId,
+    isAuthenticated,
+    onReply,
+    onEdit,
+    onDelete,
+    onLike,
+}: CommentItemProps) {
+    const [showReplyForm, setShowReplyForm] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+    const [editContent, setEditContent] = useState(comment.content);
+    const [editLoading, setEditLoading] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const handleDelete = async () => {
-    if (!window.confirm('Delete this comment?')) return;
-    await (CommentAPIService as ICommentsAPIService).deleteComment?.(comment.id, token);
-    onCommentUpdate();
-  };
+    // Normalise fields — handle both camelCase (API) and snake_case (legacy DTO)
+    const authorId      = comment.authorId   ?? comment.authorId   ?? 0;
+    const createdAt     = comment.createdAt  ?? comment.createdAt  ?? '';
+    const updatedAt     = comment.updatedAt  ?? comment.updatedAt;
+    const isDeleted     = comment.isDeleted === 1 || !!comment.isDeleted;
+    const likesCount    = comment.likesCount ?? comment.likesCount ?? 0;
+    const isLiked       = comment.isLiked    ?? comment.isLiked    ?? false;
+    const totalReplies  = replyCount || (comment.replies?.length ?? 0);
 
-  const date = comment.createdAt
-    ? new Date(comment.createdAt).toLocaleDateString('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric',
-      })
-    : null;
+    // Username: prefer joined field, fallback to author object, fallback to placeholder
+    const authorUsername =
+        comment.username ??
+        comment.author?.username ??
+        `user_${authorId}`;
 
-  if (isDeleted) {
+    const isOwner = isAuthenticated && currentUserId === authorId;
+
+    const handleEditSave = async () => {
+        const trimmed = editContent.trim();
+        if (!trimmed) { setEditError('Content cannot be empty.'); return; }
+        if (trimmed.length > 2000) { setEditError('Max 2000 characters.'); return; }
+        setEditError(null);
+        setEditLoading(true);
+        const ok = await onEdit(comment.id, trimmed);
+        setEditLoading(false);
+        if (ok) setEditMode(false);
+        else setEditError('Failed to save. Try again.');
+    };
+
+    const handleDelete = async () => {
+        setDeleteLoading(true);
+        await onDelete(comment.id);
+        setDeleteLoading(false);
+        setShowDeleteConfirm(false);
+    };
+
     return (
-      <>
-        <DeletedComment hasReplies={hasReplies} />
-        {hasReplies && (
-          <ReplyList
-            replies={comment.replies}
-            currentUserId={currentUserId}
-            token={token}
-            onCommentUpdate={onCommentUpdate}
-            isModerator={isModerator}
-          />
-        )}
-      </>
+        <div className={depth > 0 ? 'pl-4 border-l border-white/5' : ''}>
+            <div className="flex gap-3 group">
+                {/* Avatar */}
+                <div className="shrink-0 mt-0.5">
+                    <div className="w-8 h-8 rounded-full bg-pulse-50 flex items-center justify-center text-pulse text-xs font-medium font-syne">
+                        {getInitials(authorUsername)}
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div className="flex-1 min-w-0">
+                    {/* Header */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <a href={`/profile/${authorId}`} className="text-sm font-medium text-white hover:underline">
+                            @{authorUsername}
+                        </a>
+                        <span className="text-xs text-muted-ghost">
+                            {formatDate(createdAt)}
+                        </span>
+                        {updatedAt && updatedAt !== createdAt && !isDeleted && (
+                            <span className="text-xs text-muted-ghost italic">(edited)</span>
+                        )}
+                    </div>
+
+                    {/* Content */}
+                    {isDeleted ? (
+                        <p className="text-sm text-muted-ghost italic mt-1">[comment deleted]</p>
+                    ) : editMode ? (
+                        <div className="mt-2 space-y-2">
+                            <textarea
+                                value={editContent}
+                                onChange={e => setEditContent(e.target.value)}
+                                rows={3}
+                                maxLength={2000}
+                                autoFocus
+                                className="w-full bg-surface-hover border border-white/6 rounded text-muted text-sm px-3 py-2 resize-none focus:outline-none focus:border-pulse/40 transition-colors"
+                            />
+                            {editError && <p className="text-xs text-red-400">{editError}</p>}
+                            <div className="flex gap-2 justify-end">
+                                <button
+                                    onClick={() => { setEditMode(false); setEditContent(comment.content); setEditError(null); }}
+                                    className="text-xs text-muted-soft hover:text-muted transition-colors px-3 py-1.5 rounded"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleEditSave}
+                                    disabled={editLoading}
+                                    className="text-xs bg-pulse text-white px-4 py-1.5 rounded font-medium hover:bg-pulse-80 transition-colors disabled:opacity-40"
+                                >
+                                    {editLoading ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted mt-1 leading-relaxed break-words">
+                            {comment.content}
+                        </p>
+                    )}
+
+                    {/* Actions */}
+                    {!isDeleted && !editMode && (
+                        <CommentActions
+                            commentId={comment.id}
+                            isLiked={isLiked}
+                            likesCount={likesCount}
+                            isOwner={isOwner}
+                            isAuthenticated={isAuthenticated}
+                            onLike={() => onLike(comment.id, isLiked)}
+                            onReply={() => setShowReplyForm(v => !v)}
+                            onEdit={() => { setEditMode(true); setEditContent(comment.content); }}
+                            onDelete={() => setShowDeleteConfirm(true)}
+                        />
+                    )}
+
+                    {/* Reply form */}
+                    {showReplyForm && (
+                        <div className="mt-3">
+                            <CommentForm
+                                autoFocus
+                                placeholder="Write a reply..."
+                                submitLabel="Reply"
+                                onCancel={() => setShowReplyForm(false)}
+                                onSubmit={content => onReply(comment.id, content)}
+                            />
+                        </div>
+                    )}
+
+                    {/* Delete confirm */}
+                    {showDeleteConfirm && (
+                        <div className="mt-3 p-3 bg-surface-hover border border-white/6 rounded space-y-2">
+                            <p className="text-sm text-muted">Delete this comment? Replies will remain.</p>
+                            <div className="flex gap-2 justify-end">
+                                <button
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    className="text-xs text-muted-soft hover:text-muted transition-colors px-3 py-1.5"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={deleteLoading}
+                                    className="text-xs bg-red-500/80 text-white px-4 py-1.5 rounded hover:bg-red-500 transition-colors disabled:opacity-40"
+                                >
+                                    {deleteLoading ? 'Deleting...' : 'Delete'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Replies */}
+            {totalReplies > 0 && (
+                <CollapsibleReplies
+                    parentComment={comment}
+                    replyCount={totalReplies}
+                    currentUserId={currentUserId}
+                    isAuthenticated={isAuthenticated}
+                    depth={depth}
+                    onReply={onReply}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onLike={onLike}
+                />
+            )}
+        </div>
     );
-  }
-
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{ padding: isNested ? '16px 0' : '4px 0' }}
-    >
-      {/* AUTHOR ROW */}
-      <div className="flex items-center justify-between" style={{ marginBottom: '14px' }}>
-        <div className="flex items-center flex-wrap" style={{ gap: '12px', minWidth: 0 }}>
-
-          {/* Accent dash */}
-          <div style={{
-            width: isNested ? '16px' : '28px',
-            height: '1px',
-            background: 'var(--color-pulse)',
-            opacity: isNested ? 0.6 : 1,
-            flexShrink: 0,
-          }} />
-
-          {/* Username */}
-          <span
-            className="font-syne"
-            style={{
-              fontSize: isNested ? '14px' : '17px',
-              fontWeight: 800,
-              color: '#fff',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            @{comment.authorUsername}
-          </span>
-
-          {/* Date */}
-          {date && (
-            <span
-              className="font-dm"
-              style={{ fontSize: '12px', fontWeight: 300, color: 'var(--color-muted-ghost)', letterSpacing: '0.03em' }}
-            >
-              {date}
-            </span>
-          )}
-
-          {/* Mod badge */}
-          {isModerator && isAuthor && (
-            <span
-              className="font-dm"
-              style={{
-                fontSize: '10px', fontWeight: 300, letterSpacing: '0.12em',
-                color: 'var(--color-pulse-80)',
-                border: '1px solid var(--color-pulse-half)',
-                padding: '1px 6px', lineHeight: 1.4, flexShrink: 0,
-              }}
-            >
-              mod
-            </span>
-          )}
-        </div>
-
-        {/* Edit / delete — fade in on hover */}
-        {canEdit && !isEditing && (
-          <div
-            className="flex items-center"
-            style={{
-              gap: '14px',
-              opacity: hovered ? 1 : 0,
-              transition: 'opacity 0.15s',
-              flexShrink: 0,
-            }}
-          >
-            <HoverBtn onClick={() => setIsEditing(true)}>edit</HoverBtn>
-            <HoverBtn onClick={handleDelete} danger>delete</HoverBtn>
-          </div>
-        )}
-      </div>
-
-      {/* BODY */}
-      <div style={{ paddingLeft: isNested ? '28px' : '42px' }}>
-
-        {isEditing ? (
-          <CommentEditForm
-            initialContent={comment.content}
-            onSave={handleSave}
-            onCancel={() => setIsEditing(false)}
-          />
-        ) : (
-          <p
-            className="font-dm"
-            style={{
-              fontSize: '15px', fontWeight: 300,
-              lineHeight: '1.78', color: 'var(--color-muted-strong)',
-              letterSpacing: '0.005em', margin: 0,
-            }}
-          >
-            {comment.content}
-          </p>
-        )}
-
-        {/* ACTION BAR */}
-        {!isEditing && (
-          <div className="flex items-center" style={{ gap: '20px', marginTop: '14px' }}>
-            <CommentLikeButton
-              commentId={comment.id}
-              likeCount={comment.likeCount ?? 0}
-              token={token}
-              onUpdate={onCommentUpdate}
-            />
-            {!isNested && (
-              <ActionBtn active={isReplying} onClick={() => onReply(comment.id)}>
-                {isReplying ? 'cancel' : 'reply'}
-              </ActionBtn>
-            )}
-            {hasReplies && !isNested && (
-              <span
-                className="font-dm"
-                style={{
-                  fontSize: '12px', fontWeight: 300,
-                  color: 'var(--color-muted-ghost)',
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
-                {comment.replies.length}{' '}
-                {comment.replies.length === 1 ? 'reply' : 'replies'}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* REPLY FORM */}
-        {isReplying && !isNested && (
-          <CommentReplyForm
-            value={replyContent}
-            onChange={setReplyContent}
-            onSubmit={() => onSubmitReply(comment.id)}
-            onCancel={() => onReply(comment.id)}
-            replyingToUsername={comment.authorUsername}
-          />
-        )}
-
-        {/* NESTED REPLIES */}
-        {hasReplies && (
-          <ReplyList
-            replies={comment.replies}
-            currentUserId={currentUserId}
-            token={token}
-            onCommentUpdate={onCommentUpdate}
-            isModerator={isModerator}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ── Inline helpers ── */
-
-function ActionBtn({ onClick, active, children }: {
-  onClick: () => void; active?: boolean; children: React.ReactNode;
-}) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      className="font-dm"
-      style={{
-        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-        fontSize: '12px', fontWeight: 300, letterSpacing: '0.08em',
-        color: active ? 'var(--color-pulse)' : hov ? 'var(--color-muted)' : 'var(--color-muted-ghost)',
-        transition: 'color 0.15s',
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function HoverBtn({ onClick, danger, children }: {
-  onClick: () => void; danger?: boolean; children: React.ReactNode;
-}) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      className="font-dm"
-      style={{
-        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-        fontSize: '11px', fontWeight: 300, letterSpacing: '0.10em',
-        color: hov ? (danger ? '#f87171' : '#fff') : 'var(--color-muted-ghost)',
-        transition: 'color 0.15s',
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-/* ── Reply list ── */
-interface ReplyListProps {
-  replies: CommentDto[];
-  currentUserId?: number;
-  token: string;
-  onCommentUpdate: () => void;
-  isModerator: boolean;
-}
-
-function ReplyList({ replies, currentUserId, token, onCommentUpdate, isModerator }: ReplyListProps) {
-  return (
-    <div style={{
-      marginTop: '20px',
-      borderLeft: '1px solid rgba(255,255,255,0.07)',
-      paddingLeft: '20px',
-    }}>
-      {replies.map((r, i) => (
-        <div key={r.id} style={{ borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-          <CommentItem
-            comment={r}
-            currentUserId={currentUserId}
-            token={token}
-            onReply={() => {}}
-            onCommentUpdate={onCommentUpdate}
-            isReplying={false}
-            replyContent=""
-            setReplyContent={() => {}}
-            onSubmitReply={() => {}}
-            isModerator={isModerator}
-            isNested
-          />
-        </div>
-      ))}
-    </div>
-  );
 }

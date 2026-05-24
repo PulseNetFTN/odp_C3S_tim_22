@@ -1,80 +1,31 @@
-import axios from "axios";
-import type { CommentDto, CreateCommentDto } from "../../models/comments/CommentDTO";
-import type { ICommentsAPIService } from "./ICommentAPIService";
-
-const API_URL: string = import.meta.env.VITE_API_URL + "comments";
+// src/api_services/comments/CommentAPIService.ts
+import type { CommentDto, CreateCommentDto, UpdateCommentDto } from '../../models/comments/CommentDTO';
+import type { ApiResponse } from '../../helpers/api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../helpers/api';
+import type { ICommentsAPIService } from './ICommentAPIService';
 
 export const CommentAPIService: ICommentsAPIService = {
-  async getCommentsByPostId(postId: number, token: string): Promise<CommentDto[]> {
-    try {
-      const res = await axios.get(`${API_URL}/posts/${postId}/comments`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (res.data.success) {
-        return res.data.data;
-      }
-      return [];
-    } catch {
-      return [];
-    }
-  },
+    getCommentsByPost: async (postId: number): Promise<ApiResponse<CommentDto[]>> => {
+        console.log('📡 CommentAPIService.getCommentsByPost - calling API for postId:', postId);
+        const response = await apiGet<CommentDto[]>(`posts/${postId}/comments`);
+        console.log('📡 CommentAPIService.getCommentsByPost - response:', response);
+        console.log('📡 CommentAPIService.getCommentsByPost - response.data:', response.data);
+        console.log('📡 CommentAPIService.getCommentsByPost - response.data length:', Array.isArray(response.data) ? response.data.length : 'not an array');
+        return response;
+    },
 
-  async addComment(postId: number, data: CreateCommentDto, token: string): Promise<CommentDto> {
-    const res = await axios.post(`${API_URL}/posts/${postId}/comments`, data, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    if (res.data.success) {
-      return res.data.data;
-    }
-    throw new Error(res.data.message || "Failed to add comment");
-  },
+    createComment: (_token: string, data: CreateCommentDto): Promise<ApiResponse<CommentDto>> =>
+        apiPost<CommentDto>(`posts/${data.post_id}/comments`, data),
 
-  async updateComment(id: number, content: string, token: string): Promise<CommentDto> {
-    const res = await axios.put(`${API_URL}/comments/${id}`, { content }, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    if (res.data.success) {
-      return res.data.data;
-    }
-    throw new Error(res.data.message || "Failed to update comment");
-  },
+    updateComment: (_token: string, id: number, data: UpdateCommentDto): Promise<ApiResponse<CommentDto>> =>
+        apiPut<CommentDto>(`comments/${id}`, data),
 
-  async deleteComment(id: number, token: string): Promise<void> {
-    const res = await axios.delete(`${API_URL}/comments/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    if (!res.data.success) {
-      throw new Error(res.data.message || "Failed to delete comment");
-    }
-  },
+    deleteComment: (_token: string, id: number): Promise<ApiResponse<boolean>> =>
+        apiDelete<boolean>(`comments/${id}`),
 
-  async likeComment(id: number, token: string): Promise<void> {
-    const res = await axios.post(`${API_URL}/comments/${id}/like`, {}, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    if (!res.data.success) {
-      throw new Error(res.data.message || "Failed to like comment");
-    }
-  },
+    likeComment: (_token: string, id: number): Promise<ApiResponse<boolean>> =>
+        apiPost<boolean>(`comments/${id}/like`),
 
-  async unlikeComment(id: number, token: string): Promise<void> {
-    const res = await axios.post(`${API_URL}/comments/${id}/unlike`, {}, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    if (!res.data.success) {
-      throw new Error(res.data.message || "Failed to unlike comment");
-    }
-  },
+    unlikeComment: (_token: string, id: number): Promise<ApiResponse<boolean>> =>
+        apiDelete<boolean>(`comments/${id}/like`),
 };

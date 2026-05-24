@@ -1,10 +1,11 @@
-import type { CommentDto, CreateCommentDto } from "../../models/comments/CommentDTO";
+import type { CommentDto, CreateCommentDto, UpdateCommentDto } from '../../models/comments/CommentDTO';
+import type { ApiResponse } from '../../types/api/ApiResponse';
 
 export interface ICommentsAPIService {
-  getCommentsByPostId(postId: number, token: string): Promise<CommentDto[]>;
-  addComment(postId: number, data: CreateCommentDto, token: string): Promise<CommentDto>;
-  updateComment(id: number, content: string, token: string): Promise<CommentDto>;
-  deleteComment(id: number, token: string): Promise<void>;
-  likeComment(id: number, token: string): Promise<void>;
-  unlikeComment(id: number, token: string): Promise<void>;
+    getCommentsByPost(postId: number): Promise<ApiResponse<CommentDto[]>>;
+    createComment(token: string, data: CreateCommentDto): Promise<ApiResponse<CommentDto>>;
+    updateComment(token: string, id: number, data: UpdateCommentDto): Promise<ApiResponse<CommentDto>>;
+    deleteComment(token: string, id: number): Promise<ApiResponse<boolean>>;
+    likeComment(token: string, id: number): Promise<ApiResponse<boolean>>;
+    unlikeComment(token: string, id: number): Promise<ApiResponse<boolean>>;
 }

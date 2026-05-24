@@ -16,6 +16,7 @@ import {
 
 export interface ICommentService {
     getCommentsByPost(input: GetCommentsByPostInput): Promise<ServiceResult<CommentDto[]>>;
+    getAllComments(): Promise<ServiceResult<CommentDto[]>>;
     addComment(input: AddCommentInput): Promise<ServiceResult<CommentDto>>;
     updateComment(input: UpdateCommentInput): Promise<ServiceResult<CommentDto>>;
     softDeleteComment(input: DeleteCommentInput): Promise<ServiceResult<boolean>>;

@@ -1,131 +1,123 @@
-import { useEffect, useRef, useState } from 'react';
-import { CommentSection } from '../../components/comments/CommentSection';
-import { useEKG } from '../../hooks/other/useEKG';
-import { useParticles } from '../../hooks/other/useParticles';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { useAuth } from '../../hooks/auth/useAuthHook';
+import AppLayout from '../../components/layout/AppLayout';
+import CommentSection from '../../components/comments/CommentSection';
+import PostPreview from '../../components/comments/PostPreview';
+import { communityApi } from '../../api_services/community/CommunityAPIService';
+import { postApi } from '../../api_services/post/PostAPIService';
+import type { PostDto } from '../../models/posts/PostsDto';
 
 export default function CommentsPage() {
-  const testPostId = 1;
+  const { postId: postIdParam } = useParams<{ postId: string }>();
+  const postId = postIdParam ? parseInt(postIdParam, 10) : null;
 
-  const landingRef = useRef<HTMLDivElement>(null);
-  const ekgWrapRef = useRef<HTMLDivElement>(null);
+  const { user, token, isAuthenticated } = useAuth();
 
-  const pCanvasRef = useRef<HTMLCanvasElement>(null);
-  const eCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [communities, setCommunities] = useState<{ id: number; name: string }[]>([]);
+  const [post, setPost] = useState<PostDto | null>(null);
+  const [postLoading, setPostLoading] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
 
-  const mouseRef = useRef<{ x: number; y: number } | null>(null);
-
-  const [ekgDims, setEkgDims] = useState({ W: 0, H: 0 });
-  const [particleDims, setParticleDims] = useState({ W: 0, H: 0 });
-
-  const { draw: drawEKG } = useEKG(eCanvasRef, ekgDims.W, ekgDims.H);
-  const { draw: drawParticles } = useParticles(
-    pCanvasRef,
-    mouseRef,
-    particleDims.W,
-    particleDims.H
-  );
-
-  // Resize + observers
   useEffect(() => {
-    const landing = landingRef.current;
-    const ekgWrap = ekgWrapRef.current;
-    if (!landing || !ekgWrap) return;
+  if (!user) return;
 
-    function resize() {
-      if (!landing || !ekgWrap) return;
-      const W = landing.offsetWidth;
-      const ekgH = ekgWrap.offsetHeight;
-
-      // EKG canvas
-      if (eCanvasRef.current) {
-        eCanvasRef.current.width = W;
-        eCanvasRef.current.height = ekgH;
-      }
-      setEkgDims({ W, H: ekgH });
-
-      // Particle canvas
-      const vh = window.innerHeight;
-      if (pCanvasRef.current) {
-        pCanvasRef.current.width = W;
-        pCanvasRef.current.height = vh;
-      }
-      setParticleDims({ W, H: vh });
+  communityApi.getMine().then(data => {
+    if (data.success && data.data) {
+      setCommunities(
+        data.data
+          .map(c => ({ id: c.id, name: c.name ?? c.name ?? '' }))
+          .filter(c => c.name !== '')
+      );
     }
+  });
+}, [user]);
 
-    resize();
-    window.addEventListener('resize', resize);
+  useEffect(() => {
+    if (!postId || isNaN(postId)) return;
 
-    const ekgObserver = new ResizeObserver(resize);
-    ekgObserver.observe(ekgWrap);
+    let isMounted = true;
 
-    // Mouse tracking (for particles)
-    const onMouseMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
+    const fetchPost = async () => {
+      const res = await postApi.getById(postId);
+      if (!isMounted) return;
+      
+      if (res.success && res.data) {
+        setPost(res.data);
+        setPostError(null);
+      } else {
+        setPost(null);
+        setPostError(res.message ?? 'Failed to load post');
+      }
+      setPostLoading(false);
     };
 
-    const onMouseLeave = () => {
-      mouseRef.current = null;
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseleave', onMouseLeave);
+    setPostLoading(true);
+    fetchPost().catch(err => {
+      if (!isMounted) return;
+      console.error('Failed to load post:', err);
+      setPost(null);
+      setPostError('Failed to load post');
+      setPostLoading(false);
+    });
 
     return () => {
-      window.removeEventListener('resize', resize);
-      window.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseleave', onMouseLeave);
-      ekgObserver.disconnect();
+      isMounted = false;
     };
-  }, []);
+  }, [postId]);
 
-  // Animation loop
-  useEffect(() => {
-    if (!ekgDims.W || !ekgDims.H || !particleDims.W || !particleDims.H) return;
-
-    let animFrame: number;
-
-    function loop() {
-      drawParticles();
-      drawEKG();
-      animFrame = requestAnimationFrame(loop);
-    }
-
-    animFrame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animFrame);
-  }, [ekgDims, particleDims, drawParticles, drawEKG]);
+  const handleLoginRequired = () => {
+    window.location.href = '/login';
+  };
 
   return (
-    <div
-      ref={landingRef}
-      className="relative overflow-hidden min-h-screen bg-surface-base text-muted font-dm"
-    >
-      {/* Fonts */}
-      <link
-        href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400&display=swap"
-        rel="stylesheet"
-      />
-
-      {/* PARTICLES BACKGROUND */}
-      <canvas
-        ref={pCanvasRef}
-        className="fixed top-0 left-0 w-full pointer-events-none"
-        style={{ zIndex: 0, height: '100vh' }}
-      />
-
-      {/* CONTENT + EKG */}
-      <div ref={ekgWrapRef} className="relative">
-        {/* EKG */}
-        <canvas
-          ref={eCanvasRef}
-          className="absolute top-0 left-0 w-full h-full pointer-events-none"
-          style={{ zIndex: 0 }}
-        />
-
-        {/* MAIN CONTENT */}
-        <div className="relative z-10 px-4 md:px-10 py-10 md:py-16 max-w-4xl mx-auto">
-          <CommentSection postId={testPostId} />
+    <AppLayout communities={communities}>
+      {postId === null || isNaN(postId) ? (
+        <div className="text-center py-20">
+          <p className="text-red-400 text-lg font-medium mb-4">
+            Invalid post ID. Please check the URL and try again.
+          </p>
+          
+          <a  href="/"
+            className="text-pulse hover:text-pulse-80 underline underline-offset-2"
+          >
+            Return to home
+          </a>
         </div>
-      </div>
-    </div>
+      ) : (
+        <>
+          {postLoading ? (
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pulse"></div>
+              </div>
+            </div>
+          ) : postError ? (
+            <div className="text-center py-12">
+              <p className="text-red-400 text-lg font-medium mb-4">
+                {postError}
+              </p>
+              <a
+                href="/"
+                className="text-pulse hover:text-pulse-80 underline underline-offset-2"
+              >
+                Return to home
+              </a>
+            </div>
+          ) : post ? (
+            <>
+              <PostPreview post={post} />
+              <CommentSection
+                postId={postId}
+                token={token}
+                currentUserId={user?.id}
+                isAuthenticated={isAuthenticated}
+                onLoginRequired={handleLoginRequired}
+              />
+            </>
+          ) : null}
+        </>
+      )}
+    </AppLayout>
   );
 }

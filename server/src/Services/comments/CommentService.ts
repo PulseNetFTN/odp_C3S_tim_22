@@ -32,6 +32,12 @@ export class CommentService implements ICommentService {
         private communityMemberRepository: ICommunityMemberRepository
     ) {}
 
+    async getAllComments(): Promise<ServiceResult<CommentDto[]>> {
+        const comments = await this.commentReadWriteRepository.getByPost(0);
+        const dtos = await Promise.all(comments.map(c => this.buildCommentDto(c)));
+        return { success: true, data: dtos };
+    }
+
     async addComment(input: AddCommentInput): Promise<ServiceResult<CommentDto>> {
         const post = await this.postRepository.getById(input.postId);
         if (!post) {

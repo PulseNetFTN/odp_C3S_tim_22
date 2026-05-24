@@ -1,6 +1,8 @@
 import { Request, Response, Router } from 'express';
 import { ICommentService } from '../../Domain/services/comments/ICommentService';
 import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
+import { authorize } from '../../Middlewares/authorization/AuthorizeMiddleware';
+import { UserRole } from '../../Domain/enums/UserRole';
 import { validateCommentContent } from '../validators/CommentValidator';
 import { sendServiceResult } from '../helpers/responseHelper';
 
@@ -15,12 +17,23 @@ export class CommentController {
     }
 
     private initializeRoutes(): void {
+        this.router.get('/comments/all', authenticate, authorize(UserRole.Admin), this.getAllComments.bind(this));
         this.router.get('/posts/:postId/comments', this.getCommentsByPost.bind(this));
-        this.router.post('/posts/:postId/comments', authenticate,this.addComment.bind(this));
+        this.router.post('/posts/:postId/comments', authenticate, this.addComment.bind(this));
         this.router.put('/comments/:id', authenticate, this.updateComment.bind(this));
         this.router.delete('/comments/:id', authenticate, this.deleteComment.bind(this));
         this.router.post('/comments/:id/like', authenticate, this.likeComment.bind(this));
         this.router.delete('/comments/:id/like', authenticate, this.unlikeComment.bind(this));
+        this.router.get('/comments/:commentId/replies', this.findRepliesByCommentId.bind(this));
+    }
+
+    private async getAllComments(req: Request, res: Response): Promise<void> {
+        try {
+            const result = await this.commentService.getAllComments();
+            sendServiceResult(res, result);
+        } catch {
+            res.status(500).json({ success: false, message: 'Internal server error' });
+        }
     }
 
     private async getCommentsByPost(req: Request, res: Response): Promise<void> {
@@ -54,7 +67,8 @@ export class CommentController {
             }
 
             const result = await this.commentService.addComment({
-                authorId: req.user!.id, postId, content, parentId: parentIdNum,});
+                authorId: req.user!.id, postId, content, parentId: parentIdNum,
+            });
             sendServiceResult(res, result, 201);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
@@ -74,7 +88,7 @@ export class CommentController {
                 res.status(400).json({ success: false, message: validation.message });
                 return;
             }
-            const result = await this.commentService.updateComment({ 
+            const result = await this.commentService.updateComment({
                 commentId, requesterId: req.user!.id, content,
             });
             sendServiceResult(res, result);
@@ -125,6 +139,20 @@ export class CommentController {
             const result = await this.commentService.unlikeComment({
                 userId: req.user!.id, commentId,
             });
+            sendServiceResult(res, result);
+        } catch {
+            res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    }
+
+    private async findRepliesByCommentId(req: Request, res: Response): Promise<void> {
+        try {
+            const commentId = Number(req.params.commentId);
+            if (Number.isNaN(commentId) || commentId <= 0) {
+                res.status(400).json({ success: false, message: 'Invalid comment id' });
+                return;
+            }
+            const result = await this.commentService.findRepliesByCommentId({ commentId });
             sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
