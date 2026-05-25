@@ -1,6 +1,6 @@
 import { Request, Response, Router } from 'express';
 import { IUserService } from '../../Domain/services/users/IUserService';
-import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
+import { authenticate, optionalAuthenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { authorize } from '../../Middlewares/authorization/AuthorizeMiddleware';
 import { UserRole } from '../../Domain/enums/UserRole';
 import { validateProfileUpdate } from '../validators/UserValidator';
@@ -21,7 +21,7 @@ export class UserController {
         this.router.get('/users/search', authenticate, this.searchUsers.bind(this));
         this.router.get('/users/me', authenticate, this.getMe.bind(this));
         this.router.put('/users/me', authenticate, this.updateProfile.bind(this));
-        this.router.get('/users/:id', this.getUserById.bind(this));
+        this.router.get('/users/:id', optionalAuthenticate, this.getUserById.bind(this));
         this.router.put('/users/:id/role', authenticate, authorize(UserRole.Admin), this.updateRole.bind(this));
         this.router.get('/users/:id/followers', this.getFollowers.bind(this));
         this.router.get('/users/:id/following', this.getFollowing.bind(this));

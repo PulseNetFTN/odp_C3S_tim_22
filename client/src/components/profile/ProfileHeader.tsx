@@ -1,5 +1,4 @@
-// src/components/profile/ProfileHeader.tsx
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import type { UserProfileDto } from '../../models/users/UserDto';
 
 interface Props {
@@ -14,7 +13,6 @@ export default function ProfileHeader({ profile, isOwnProfile, onFollow }: Props
     const [isHovering, setIsHovering] = useState(false);
     const headerRef = useRef<HTMLDivElement>(null);
 
-    // ✅ Synchronizuj isFollowing sa profile podacima
     const isFollowing = profile.isFollowing || false;
 
     const handleFollow = async () => {
@@ -34,7 +32,6 @@ export default function ProfileHeader({ profile, isOwnProfile, onFollow }: Props
         }
     };
 
-    // Safe stats with fallback values
     const stats = [
         { label: 'Posts', value: profile.stats?.postCount ?? 0 },
         { label: 'Comments', value: profile.stats?.commentCount ?? 0 },
@@ -42,7 +39,6 @@ export default function ProfileHeader({ profile, isOwnProfile, onFollow }: Props
         { label: 'Following', value: profile.stats?.followingCount ?? 0 },
     ];
 
-    // Safe username with fallback
     const username = profile.username ?? 'user';
     const firstName = profile.firstName ?? '';
     const lastName = profile.lastName ?? '';

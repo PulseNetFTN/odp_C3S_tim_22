@@ -34,3 +34,19 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
         res.status(401).json({ success: false, message: 'Invalid token' });
     }
 };
+
+export const optionalAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        next();
+        return;
+    }
+    const token = authHeader.split(' ')[1];
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET ?? '') as JwtPayload;
+        req.user = decoded;
+    } catch {
+        // invalid token — ignore, treat as unauthenticated
+    }
+    next();
+};

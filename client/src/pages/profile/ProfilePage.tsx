@@ -30,7 +30,6 @@ export default function ProfilePage() {
     const isOwnProfile = !userId || (user && user.id === parseInt(userId));
     const targetUserId = userId ? parseInt(userId) : user?.id;
 
-    // Refs za EKG i Particle efekte
     const pageRef = useRef<HTMLDivElement>(null);
     const ekgWrapRef = useRef<HTMLDivElement>(null);
     const pCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -48,7 +47,6 @@ export default function ProfilePage() {
         particleDims.H
     );
 
-    // Resize + observers za EKG i Particle efekte
     useEffect(() => {
         const page = pageRef.current;
         const ekgWrap = ekgWrapRef.current;
@@ -100,7 +98,6 @@ export default function ProfilePage() {
         };
     }, []);
 
-    // Animation loop za EKG i Particle efekte
     useEffect(() => {
         if (!ekgDims.W || !ekgDims.H || !particleDims.W || !particleDims.H) return;
 
@@ -116,7 +113,6 @@ export default function ProfilePage() {
         return () => cancelAnimationFrame(animFrame);
     }, [ekgDims, particleDims, drawParticles, drawEKG]);
 
-    // Učitaj profil
     useEffect(() => {
         let ignore = false;
 
@@ -130,8 +126,8 @@ export default function ProfilePage() {
             setError(null);
             
             const res = isOwnProfile && token
-                ? await UserProfileAPIService.getMyProfile(token)
-                : await UserProfileAPIService.getUserProfile(targetUserId, token);
+                ? await UserProfileAPIService.getMyProfile()
+                : await UserProfileAPIService.getUserProfile(targetUserId);
             
             if (!ignore) {
                 if (res.success && res.data) {
