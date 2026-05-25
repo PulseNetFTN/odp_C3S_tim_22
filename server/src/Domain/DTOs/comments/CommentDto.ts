@@ -9,6 +9,9 @@ export class CommentDto {
         public isFlagged: boolean = false,
         public replies: CommentDto[] = [],
         public createdAt: Date = new Date(),
-        public updatedAt: Date = new Date()
+        public updatedAt: Date = new Date(),
+        public username: string = '',
+        public likesCount: number = 0,
+        public isLiked: boolean = false
     ) {}
 }

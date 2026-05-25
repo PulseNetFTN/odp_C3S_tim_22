@@ -7,6 +7,7 @@ import { ICommentReadWriteRepository } from '../../Domain/repositories/comments/
 import { ICommunityRepository } from '../../Domain/repositories/communities/ICommunityRepository';
 import { ICommunityMemberRepository } from '../../Domain/repositories/communities/ICommunityMemberRepository';
 import { IPostRepository } from '../../Domain/repositories/post_repository/IPostRepository';
+import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
 import { ICommentService } from '../../Domain/services/comments/ICommentService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
 import {
@@ -29,7 +30,8 @@ export class CommentService implements ICommentService {
         private commentQueryRepository: ICommentQueryRepository,
         private commentLikeRepository: ICommentLikeRepository,
         private postRepository: IPostRepository,
-        private communityMemberRepository: ICommunityMemberRepository
+        private communityMemberRepository: ICommunityMemberRepository,
+        private userRepository: IUserRepository
     ) {}
 
     async getAllComments(): Promise<ServiceResult<CommentDto[]>> {
@@ -241,6 +243,13 @@ export class CommentService implements ICommentService {
     }
 
     private async buildCommentDto(comment: Comment): Promise<CommentDto> {
+        // Fetch username from user repository
+        const user = await this.userRepository.getById(comment.authorId);
+        const username = user?.username ?? `user_${comment.authorId}`;
+        
+        // TODO: Fetch likes count and isLiked status when needed
+        const likesCount = 0;
+        const isLiked = false;
 
         return new CommentDto(
             comment.id,
@@ -252,7 +261,10 @@ export class CommentService implements ICommentService {
             comment.isFlagged,
             [],
             comment.createdAt,
-            comment.updatedAt
+            comment.updatedAt,
+            username,
+            likesCount,
+            isLiked
         );
     }
 }

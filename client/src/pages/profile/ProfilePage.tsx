@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/auth/useAuthHook';
 import { useEKG } from '../../hooks/other/useEKG';
 import { useParticles } from '../../hooks/other/useParticles';
 import { UserProfileAPIService } from '../../api_services/users/UserProfileAPIService';
-import type { UserProfileDto, UpdateProfileDto } from '../../models/users/UserDto';
+import type { UserProfileDto } from '../../models/users/UserDto';
 import ProfileHeader from '../../components/profile/ProfileHeader';
 import { ArrowLeft, Edit2, Save, X } from 'lucide-react';
 
@@ -386,10 +386,7 @@ export default function ProfilePage() {
                         </div>
                         
                         <div className="space-y-4">
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Member since</h3>
-                                <p className="text-white">{new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
-                            </div>
+                            {/* Member since section REMOVED */}
                             
                             <div>
                                 <h3 className="text-sm text-muted-ghost mb-1">Role</h3>

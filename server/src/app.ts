@@ -79,7 +79,7 @@ const postService = new PostService(
 const communityMemberService = new CommunityMemberService(communityMemberRepository, auditService);
 const commentService = new CommentService(
     commentReadWriteRepository, commentQueryRepository, commentLikeRepository,
-    postRepository, communityMemberRepository
+    postRepository, communityMemberRepository, userRepository
 );
 const communityService = new CommunityService(communityRepository, communityMemberRepository, auditService);
 const tagService = new TagService(tagRepository);

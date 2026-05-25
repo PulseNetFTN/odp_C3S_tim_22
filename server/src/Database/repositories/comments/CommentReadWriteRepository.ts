@@ -15,7 +15,7 @@ export class CommentReadWriteRepository extends BaseRepository implements IComme
 
     async getByPost(postId: number): Promise<Comment[]> {
         return this.executeRead(
-            `SELECT ${COMMENT_FIELDS} 
+            `SELECT ${COMMENT_FIELDS}
              FROM comments WHERE post_id = ? 
              ORDER BY id ASC`,
             [postId],
