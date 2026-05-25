@@ -137,13 +137,25 @@ export function getReadConnection(): ServiceResult<Pool> {
     return { success: true, data: slave.pool };
 }
 
-export function getHealthStatus(): HealthStatus[] {
-    return [currentMaster, ...slaveNodes].map(node => ({
-        name: node.name,
-        status: node.status,
-        responseTime: node.responseTime,
-        lastChecked: node.lastChecked,
-    }));
+export function getHealthStatus() {
+    const nodes = [currentMaster, ...slaveNodes];
+    return {
+        master: {
+            status: nodes[0]?.status ?? 'unreachable' as const,
+            latency: nodes[0]?.responseTime ?? 0,
+            lastChecked: nodes[0]?.lastChecked?.toISOString() ?? new Date().toISOString(),
+        },
+        slave1: {
+            status: nodes[1]?.status ?? 'unreachable' as const,
+            latency: nodes[1]?.responseTime ?? 0,
+            lastChecked: nodes[1]?.lastChecked?.toISOString() ?? new Date().toISOString(),
+        },
+        slave2: {
+            status: nodes[2]?.status ?? 'unreachable' as const,
+            latency: nodes[2]?.responseTime ?? 0,
+            lastChecked: nodes[2]?.lastChecked?.toISOString() ?? new Date().toISOString(),
+        },
+    };
 }
 
 export function promoteSlaveToMaster(slaveIdx: number): ServiceResult<string> {
