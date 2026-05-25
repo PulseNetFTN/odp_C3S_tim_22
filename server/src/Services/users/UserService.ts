@@ -66,7 +66,7 @@ export class UserService implements IUserService {
             user.bio,
             user.profileImage,
             user.role,
-            user.createdAt,
+            user.createdAt ?? new Date(),
             {
                 postCount: posts.length,
                 commentCount: comments.length,

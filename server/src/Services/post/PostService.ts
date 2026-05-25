@@ -10,13 +10,14 @@ import { IPostRepository } from '../../Domain/repositories/post_repository/IPost
 import { IPostLikeRepository } from '../../Domain/repositories/post_repository/IPostLikeRepository';
 import { IPostTagRepository } from '../../Domain/repositories/post_repository/IPostTagRepository';
 import { IPostCommentRepository } from '../../Domain/repositories/post_repository/IPostCommentRepository';
-import { ITagRepository } from '../../Domain/repositories/tags/ITagRepository';
+import { ITagRepository } from '../../Domain/repositories/Tags/ITagRepository';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
 import { IUserFollowRepository } from '../../Domain/repositories/users/IUserFollowRepository';
 import { IPostService } from '../../Domain/services/post/IPostService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
 import * as PostInputs from '../../Domain/types/inputs/PostInputs';
 import { CommunityRole } from '../../Domain/enums/CommunityRole'
+import { UserRole } from '../../Domain/enums/UserRole';
 export class PostService implements IPostService {
     public constructor(
         private postRepository: IPostRepository,
@@ -220,8 +221,10 @@ export class PostService implements IPostService {
         const member = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
         const isAuthor = post.authorId === input.requesterId;
         const isModerator = member?.role === CommunityRole.Moderator;
+        const user = await this.userRepository.getById(input.requesterId);
+        const isAdmin = user?.role === UserRole.Admin;
 
-        if (!isAuthor && !isModerator) {
+        if (!isAuthor && !isModerator && !isAdmin) {
             return { success: false, message: 'Not authorized to delete this post', errorCode: ErrorCode.FORBIDDEN };
         }
 

@@ -1,5 +1,5 @@
 import { Tag } from '../../../Domain/models/Tag';
-import { ITagRepository } from '../../../Domain/repositories/tags/ITagRepository';
+import { ITagRepository } from '../../../Domain/repositories/Tags/ITagRepository';
 import { BaseRepository } from '../BaseRepository';
 import { mapTag, TAG_FIELDS } from '../../mappers/TagMapper';
 

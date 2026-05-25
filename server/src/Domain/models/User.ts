@@ -8,7 +8,8 @@ export class User {
         public bio: string | null = null,
         public profileImage: string | null = null,
         public role: string = 'user',
-        public passwordHash: string = ''
+        public passwordHash: string = '',
+        public createdAt: Date | null = null
     ) {}
 }
 
