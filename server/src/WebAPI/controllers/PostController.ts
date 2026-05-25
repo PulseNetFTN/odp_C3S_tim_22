@@ -1,5 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
+import { authorize } from '../../Middlewares/authorization/AuthorizeMiddleware';
+import { UserRole } from '../../Domain/enums/UserRole';
 import { validateCreatePost } from '../validators/PostValidator';
 import { IPostService } from '../../Domain/services/post/IPostService';
 import { sendServiceResult } from '../helpers/responseHelper';
@@ -15,6 +17,8 @@ export class PostController {
     }
 
     private initializeRoutes(): void {
+        // IMPORTANT: static routes must come before dynamic /:id routes
+        this.router.get('/posts/all', authenticate, authorize(UserRole.Admin), this.getAllPosts.bind(this));
         this.router.get('/posts/public', this.getPublicPosts.bind(this));
         this.router.get('/posts/feed', authenticate, this.getFeed.bind(this));
         this.router.get('/posts/community/:communityId', this.getByCommunity.bind(this));
@@ -26,6 +30,16 @@ export class PostController {
         this.router.delete('/posts/:id/like', authenticate, this.removeLike.bind(this));
         this.router.post('/posts/:id/tags', authenticate, this.addTag.bind(this));
         this.router.delete('/posts/:id/tags/:tagId', authenticate, this.removeTag.bind(this));
+    }
+
+    // Admin only — returns all posts
+    private async getAllPosts(req: Request, res: Response): Promise<void> {
+        try {
+            const result = await this.postService.getAllPosts();
+            sendServiceResult(res, result);
+        } catch {
+            res.status(500).json({ success: false, message: 'Internal server error' });
+        }
     }
 
     private async getPublicPosts(req: Request, res: Response): Promise<void> {

@@ -16,6 +16,7 @@ import {
 
 export interface IPostService {
     createPost(input: CreatePostInput): Promise<ServiceResult<PostDto>>;
+    getAllPosts(): Promise<ServiceResult<PostDto[]>>;
     getPostById(input: GetPostInput): Promise<ServiceResult<PostDto>>;
     getCommunityPosts(input: GetCommunityPostsInput): Promise<ServiceResult<PostDto[]>>;
     getFeed(input: GetFeedInput): Promise<ServiceResult<PostDto[]>>;

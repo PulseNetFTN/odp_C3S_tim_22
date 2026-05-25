@@ -125,6 +125,12 @@ export class PostService implements IPostService {
         return { success: true, data: dto };
     }
 
+    async getAllPosts(): Promise<ServiceResult<PostDto[]>> {
+        const posts = await this.postRepository.getPublicPosts(100);
+        const dtos = await this.buildPostDtos(posts, null);
+        return { success: true, data: dtos };
+    }
+
     async getPostById(input: PostInputs.GetPostInput): Promise<ServiceResult<PostDto>> {
         const post = await this.postRepository.getById(input.postId);
         if (!post) {
