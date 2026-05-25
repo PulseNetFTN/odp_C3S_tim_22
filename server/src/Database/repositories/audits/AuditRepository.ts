@@ -18,17 +18,25 @@ export class AuditRepository extends BaseRepository implements IAuditRepository 
     }
 
     async getAll(limit: number, offset: number): Promise<Audit[]> {
+        // Convert to integers explicitly for LIMIT clause
+        const limitInt = Math.max(1, Math.floor(limit));
+        const offsetInt = Math.max(0, Math.floor(offset));
+        
         return this.executeRead(
-            `SELECT ${AUDIT_FIELDS} FROM audits ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-            [limit, offset],
+            `SELECT ${AUDIT_FIELDS} FROM audits ORDER BY created_at DESC LIMIT ${offsetInt}, ${limitInt}`,
+            [],
             mapAudit
         );
     }
 
     async getByUserId(userId: number, limit: number, offset: number): Promise<Audit[]> {
+        // Convert to integers explicitly for LIMIT clause
+        const limitInt = Math.max(1, Math.floor(limit));
+        const offsetInt = Math.max(0, Math.floor(offset));
+        
         return this.executeRead(
-            `SELECT ${AUDIT_FIELDS} FROM audits WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-            [userId, limit, offset],
+            `SELECT ${AUDIT_FIELDS} FROM audits WHERE user_id = ? ORDER BY created_at DESC LIMIT ${offsetInt}, ${limitInt}`,
+            [userId],
             mapAudit
         );
     }

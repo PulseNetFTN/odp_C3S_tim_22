@@ -22,14 +22,15 @@ export class AuditController {
 
     private async getLogs(req: Request, res: Response): Promise<void> {
         try {
-            const page = parseInt(String(req.query.page)) || PAGING.PAGE_MIN;
-            const limit = parseInt(String(req.query.limit)) || PAGING.LIMIT;
+            const page = parseInt(String(req.query.page ?? PAGING.PAGE_MIN), 10);
+            const limit = parseInt(String(req.query.limit ?? PAGING.LIMIT), 10);
 
             if (page < PAGING.PAGE_MIN || limit < PAGING.PAGE_MIN || limit > PAGING.PAGE_MAX) {
                 res.status(400).json({ success: false, message: 'Invalid pagination parameters' });
                 return;
             }
 
+            console.log(`Fetching audit logs - Page: ${page}, Limit: ${limit}`);
             const result = await this.auditService.getAuditLogs({ page, limit });
             sendServiceResult(res, result);
         } catch {

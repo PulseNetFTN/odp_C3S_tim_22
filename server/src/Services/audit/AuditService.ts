@@ -24,12 +24,14 @@ export class AuditService implements IAuditService {
     }
 
     async getAuditLogs(input: GetAuditLogsInput): Promise<ServiceResult<{ logs: AuditDto[]; total: number }>> {
-        const offset = (input.page - 1) * input.limit;
+        const limit = Math.floor(Number(input.limit));
+        const offset = Math.floor((Number(input.page) - 1) * limit);
         const [audits, total] = await Promise.all([
-            this.auditRepository.getAll(input.limit, offset),
+            this.auditRepository.getAll(limit, offset),
             this.auditRepository.getTotalCount(),
         ]);
 
+        console.log(`Retrieved ${audits.length} audit logs from repository (Total: ${total})`);
         const logs = audits.map(a => new AuditDto(
             a.id, a.userId, a.action, a.entityType, a.entityId,
             a.details, a.ipAddress, a.userAgent, a.createdAt

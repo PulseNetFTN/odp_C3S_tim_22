@@ -13,6 +13,14 @@ interface AuditCardProps {
     onToggle: () => void;
 }
 
+interface PaginatedAuditResponse {
+    data: AuditLog[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}
+
 function AuditCard({ log, isExpanded, onToggle }: AuditCardProps) {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [isHovering, setIsHovering] = useState(false);
@@ -132,6 +140,10 @@ export default function AuditLogTable({ token }: Props) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [expandedLog, setExpandedLog] = useState<number | null>(null);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
+    const limit = 20;
 
     useEffect(() => {
         let ignore = false;
@@ -141,18 +153,46 @@ export default function AuditLogTable({ token }: Props) {
             setError(null);
             
             try {
-                const res = await AdminAPIService.getAuditLogs(token ?? 'mock-token', 1, 100);
+                const res = await AdminAPIService.getAuditLogs(token ?? '', page, limit);
+                
+                console.log('🔍 Audit logs response:', res);
                 
                 if (!ignore && res.success && res.data) {
                     let logsArray: AuditLog[] = [];
+                    let totalVal = 0;
+                    let totalPagesVal = 1;
                     
+                    // Handle different response formats (same pattern as UsersTable)
                     if (Array.isArray(res.data)) {
                         logsArray = res.data;
-                    } else if (res.data && typeof res.data === 'object' && Array.isArray(res.data.data)) {
-                        logsArray = res.data.data;
+                        totalVal = res.data.length;
+                    } else if (res.data && typeof res.data === 'object') {
+                        // Check for paginated response with data.data
+                        if (Array.isArray(res.data.data)) {
+                            logsArray = res.data.data;
+                            totalVal = res.data.total || res.data.data.length;
+                            totalPagesVal = res.data.totalPages || 1;
+                        }
+                        // Check for response with logs array (backend format)
+                        else if (Array.isArray(res.data.logs)) {
+                            logsArray = res.data.logs;
+                            totalVal = res.data.total || res.data.logs.length;
+                            totalPagesVal = Math.ceil(totalVal / limit);
+                        }
+                        // Check if data itself is an object with array property
+                        else {
+                            const possibleArrays = Object.values(res.data).filter(v => Array.isArray(v));
+                            if (possibleArrays.length > 0) {
+                                logsArray = possibleArrays[0];
+                                totalVal = logsArray.length;
+                            }
+                        }
                     }
                     
+                    console.log('📊 Parsed logs:', logsArray.length);
                     setLogs(logsArray);
+                    setTotal(totalVal);
+                    setTotalPages(totalPagesVal);
                 } else if (!ignore && res.message && !res.data) {
                     setError(res.message);
                     setLogs([]);
@@ -172,7 +212,13 @@ export default function AuditLogTable({ token }: Props) {
         return () => {
             ignore = true;
         };
-    }, [token]);
+    }, [token, page, limit]);
+
+    const goToPage = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setPage(newPage);
+        }
+    };
 
     if (loading) {
         return (
@@ -184,7 +230,6 @@ export default function AuditLogTable({ token }: Props) {
         );
     }
 
-    // Error se prikazuje SAMO ako nema logova
     if (error && logs.length === 0) {
         return (
             <div className="text-center py-12">
@@ -208,7 +253,7 @@ export default function AuditLogTable({ token }: Props) {
         <div>
             <div className="flex items-center justify-between mb-6">
                 <h2 className="font-syne text-xl font-bold text-white">Audit Log</h2>
-                <p className="text-xs text-muted-ghost">Total: {logs.length}</p>
+                <p className="text-xs text-muted-ghost">Total: {total}</p>
             </div>
 
             <div className="space-y-3">
@@ -227,6 +272,29 @@ export default function AuditLogTable({ token }: Props) {
                     </div>
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-border-subtle">
+                    <button
+                        onClick={() => goToPage(page - 1)}
+                        disabled={page === 1}
+                        className="text-xs text-muted-ghost hover:text-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        ← Previous
+                    </button>
+                    <span className="text-xs text-muted-ghost">
+                        Page {page} of {totalPages}
+                    </span>
+                    <button
+                        onClick={() => goToPage(page + 1)}
+                        disabled={page === totalPages}
+                        className="text-xs text-muted-ghost hover:text-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Next →
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
