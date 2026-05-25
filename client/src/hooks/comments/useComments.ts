@@ -81,6 +81,7 @@ export function useComments({ postId, token }: UseCommentsOptions) {
     const addComment = useCallback(async (data: CreateCommentDto): Promise<boolean> => {
         if (!token) return false;
         try {
+            console.log('📤 Adding comment:', data);
             const res = await CommentAPIService.createComment(token, data);
             if (res.success) {
                 await fetchComments();

@@ -15,7 +15,7 @@ export const CommentAPIService: ICommentsAPIService = {
     },
 
     createComment: (_token: string, data: CreateCommentDto): Promise<ApiResponse<CommentDto>> =>
-        apiPost<CommentDto>(`posts/${data.post_id}/comments`, data),
+        apiPost<CommentDto>(`posts/${data.post_id}/comments?parentId=${data.parent_id}`, data),
 
     updateComment: (_token: string, id: number, data: UpdateCommentDto): Promise<ApiResponse<CommentDto>> =>
         apiPut<CommentDto>(`comments/${id}`, data),

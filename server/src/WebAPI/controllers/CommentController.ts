@@ -52,13 +52,14 @@ export class CommentController {
 
     private async addComment(req: Request, res: Response): Promise<void> {
         try {
-            const { content, parentId } = req.body;
+            const { content, parent_id, parentId } = req.body;
             const postId = Number(req.params.postId);
             if (Number.isNaN(postId) || postId <= 0) {
                 res.status(400).json({ success: false, message: 'Invalid post id' });
                 return;
             }
-            const parentIdNum = parentId !== undefined ? Number(parentId) : null;
+            const parentIdValue = parent_id !== undefined ? parent_id : parentId;
+            const parentIdNum = parentIdValue !== undefined ? Number(parentIdValue) : null;
             const validation = validateCommentContent(content, parentIdNum);
 
             if (!validation.valid) {
