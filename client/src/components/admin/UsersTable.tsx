@@ -101,7 +101,6 @@ function UserCard({ user, onRoleChange, isUpdating }: UserCardProps) {
                     >
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
-                        <option value="guest">Guest</option>
                     </select>
                 </div>
             </div>

@@ -54,7 +54,7 @@ export class UserController {
 
     private async getMe(req: Request, res: Response): Promise<void> {
         try {
-            const result = await this.userService.getUserById({ userId: req.user!.id });
+            const result = await this.userService.getUserProfile(req.user!.id, req.user!.id);
             sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
@@ -68,7 +68,8 @@ export class UserController {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const result = await this.userService.getUserById({ userId: id });
+            const currentUserId = req.user?.id;
+            const result = await this.userService.getUserProfile(id, currentUserId);
             sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });

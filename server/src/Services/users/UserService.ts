@@ -1,8 +1,10 @@
-import { UserDto } from '../../Domain/DTOs/users/UserDto';
+import { UserDto, UserProfileDto } from '../../Domain/DTOs/users/UserDto';
 import { ErrorCode } from '../../Domain/enums/ErrorCode';
 import { User } from '../../Domain/models/User';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
 import { IUserFollowRepository } from '../../Domain/repositories/users/IUserFollowRepository';
+import { IPostRepository } from '../../Domain/repositories/post_repository/IPostRepository';
+import { ICommentReadWriteRepository } from '../../Domain/repositories/comments/ICommentReadWriteRepository';
 import { IAuditService } from '../../Domain/services/audit/IAuditService';
 import { IUserService } from '../../Domain/services/users/IUserService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
@@ -20,7 +22,9 @@ export class UserService implements IUserService {
     public constructor(
         private userRepository: IUserRepository,
         private userFollowRepository: IUserFollowRepository,
-        private auditService: IAuditService
+        private auditService: IAuditService,
+        private postRepository: IPostRepository,
+        private commentRepository: ICommentReadWriteRepository
     ) {}
 
 
@@ -35,6 +39,44 @@ export class UserService implements IUserService {
             return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };   
         }
         return {success: true, data: this.toDto(user)};
+    }
+
+    async getUserProfile(userId: number, currentUserId?: number): Promise<ServiceResult<UserProfileDto>> {
+        const user = await this.userRepository.getById(userId);
+        if (!user) {
+            return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };   
+        }
+
+        const posts = await this.postRepository.getByAuthorId(userId);
+        const comments = await this.commentRepository.getByAuthor(userId);
+        const followerCount = await this.userFollowRepository.getFollowerCount(userId);
+        const followingCount = await this.userFollowRepository.getFollowingCount(userId);
+
+        let isFollowing = false;
+        if (currentUserId && currentUserId !== userId) {
+            isFollowing = await this.userFollowRepository.isFollowing(currentUserId, userId);
+        }
+
+        const profileDto = new UserProfileDto(
+            user.id,
+            user.username,
+            user.email,
+            user.firstName,
+            user.lastName,
+            user.bio,
+            user.profileImage,
+            user.role,
+            user.createdAt,
+            {
+                postCount: posts.length,
+                commentCount: comments.length,
+                followerCount: followerCount || 0,
+                followingCount: followingCount || 0
+            },
+            isFollowing
+        );
+
+        return { success: true, data: profileDto };
     }
 
     async updateProfile(input: UpdateProfileInput): Promise<ServiceResult<UserDto>> {

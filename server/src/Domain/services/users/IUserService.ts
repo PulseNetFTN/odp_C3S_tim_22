@@ -1,4 +1,4 @@
-import { UserDto } from '../../DTOs/users/UserDto';
+import { UserDto, UserProfileDto } from '../../DTOs/users/UserDto';
 import { ServiceResult } from '../../types/ServiceResult';
 import {
     UpdateProfileInput,
@@ -14,6 +14,7 @@ import {
 export interface IUserService {
     getAllUsers(): Promise<ServiceResult<UserDto[]>>;
     getUserById(input: GetUserInput): Promise<ServiceResult<UserDto>>;
+    getUserProfile(userId: number, currentUserId?: number): Promise<ServiceResult<UserProfileDto>>;
     updateProfile(input: UpdateProfileInput): Promise<ServiceResult<UserDto>>;
     updateRole(input: UpdateRoleInput): Promise<ServiceResult<boolean>>;
     searchUsers(input: SearchUsersInput): Promise<ServiceResult<UserDto[]>>;

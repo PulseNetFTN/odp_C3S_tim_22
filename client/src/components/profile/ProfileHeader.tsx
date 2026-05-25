@@ -1,5 +1,5 @@
 // src/components/profile/ProfileHeader.tsx
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { UserProfileDto } from '../../models/users/UserDto';
 
 interface Props {
@@ -9,17 +9,18 @@ interface Props {
 }
 
 export default function ProfileHeader({ profile, isOwnProfile, onFollow }: Props) {
-    const [isFollowing, setIsFollowing] = useState(profile.isFollowing || false);
     const [isLoading, setIsLoading] = useState(false);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [isHovering, setIsHovering] = useState(false);
     const headerRef = useRef<HTMLDivElement>(null);
 
+    // ✅ Synchronizuj isFollowing sa profile podacima
+    const isFollowing = profile.isFollowing || false;
+
     const handleFollow = async () => {
         if (isLoading) return;
         setIsLoading(true);
         await onFollow?.();
-        setIsFollowing(!isFollowing);
         setIsLoading(false);
     };
 
