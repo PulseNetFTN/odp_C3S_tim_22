@@ -18,6 +18,7 @@ export type DeleteCommentInput = {
 
 export type GetCommentsByPostInput = {
     postId: number;
+    currentUserId: number | null;
 };
 
 export type FlagCommentInput = {

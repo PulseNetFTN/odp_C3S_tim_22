@@ -1,4 +1,3 @@
-// src/components/comments/CommentItem.tsx
 import { useState } from 'react';
 import type { CommentDto } from '../../models/comments/CommentDTO';
 import CommentActions from './CommentActions';
@@ -53,7 +52,6 @@ export default function CommentItem({
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
-    // Normalise fields — handle both camelCase (API) and snake_case (legacy DTO)
     const authorId      = comment.authorId   ?? comment.authorId   ?? 0;
     const createdAt     = comment.createdAt  ?? comment.createdAt  ?? '';
     const updatedAt     = comment.updatedAt  ?? comment.updatedAt;
@@ -62,7 +60,6 @@ export default function CommentItem({
     const isLiked       = comment.isLiked    ?? comment.isLiked    ?? false;
     const totalReplies  = replyCount || (comment.replies?.length ?? 0);
 
-    // Username: prefer joined field, fallback to author object, fallback to placeholder
     const authorUsername =
         comment.username ??
         comment.author?.username ??
@@ -159,6 +156,7 @@ export default function CommentItem({
                             isOwner={isOwner}
                             isAuthenticated={isAuthenticated}
                             onLike={() => onLike(comment.id, isLiked)}
+                            isRootComment={comment.parentId === null}
                             onReply={() => setShowReplyForm(v => !v)}
                             onEdit={() => { setEditMode(true); setEditContent(comment.content); }}
                             onDelete={() => setShowDeleteConfirm(true)}

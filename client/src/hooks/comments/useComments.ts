@@ -1,7 +1,6 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { CommentDto, CreateCommentDto, CommentSortOption } from '../../models/comments/CommentDTO';
 import { CommentAPIService } from '../../api_services/comments/CommentAPIService';
-import { debounce } from '../../utils/debounce';
 
 interface UseCommentsOptions {
     postId: number;
@@ -39,20 +38,16 @@ export function useComments({ postId, token }: UseCommentsOptions) {
 
             if (res.success && res.data) {
                 const allComments = Array.isArray(res.data) ? res.data : [];
-
-                // Filter root comments — handle both camelCase (API) and snake_case (legacy)
-                const rootComments = allComments.filter((c) => {
-                    const pid = c.parentId ?? c.parent_id;
-                    return pid === null || pid === undefined;
-                });
-
+                const rootComments = allComments.filter(c => !c.parentId && !c.parent_id);
+                
                 setComments(rootComments);
                 setTotalComments(rootComments.length);
             } else {
                 setError(res.message ?? 'Failed to load comments.');
                 setComments([]);
             }
-        } catch {
+        } catch (err) {
+            console.log('💥 [fetchComments] Error fetching comments:', err);
             setError('An error occurred while fetching comments.');
             setComments([]);
         } finally {
@@ -62,17 +57,14 @@ export function useComments({ postId, token }: UseCommentsOptions) {
 
     useEffect(() => {
         fetchComments();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [postId]);
+    }, [fetchComments]);
 
     const sortedComments = [...comments].sort((a, b) => {
         if (sortBy === 'newest') {
-            // Handle both camelCase and snake_case dates
             const dateA = new Date(a.createdAt ?? a.created_at ?? 0).getTime();
             const dateB = new Date(b.createdAt ?? b.created_at ?? 0).getTime();
             return dateB - dateA;
         }
-        // most_liked — use optimistic count first, fallback to both naming conventions
         const likesA = a._likeCount ?? a.likesCount ?? a.likes_count ?? 0;
         const likesB = b._likeCount ?? b.likesCount ?? b.likes_count ?? 0;
         return likesB - likesA;
@@ -81,7 +73,6 @@ export function useComments({ postId, token }: UseCommentsOptions) {
     const addComment = useCallback(async (data: CreateCommentDto): Promise<boolean> => {
         if (!token) return false;
         try {
-            console.log('📤 Adding comment:', data);
             const res = await CommentAPIService.createComment(token, data);
             if (res.success) {
                 await fetchComments();
@@ -124,59 +115,55 @@ export function useComments({ postId, token }: UseCommentsOptions) {
         }
     }, [token, fetchComments]);
 
-    const performLikeAPIRef = useRef<(id: number, isLiked: boolean) => Promise<void>>(async () => {});
-
-    performLikeAPIRef.current = async (id: number, isLiked: boolean): Promise<void> => {
-        if (!token || pendingLikesRef.current.has(id)) return;
-        pendingLikesRef.current.add(id);
-        try {
-            const res = isLiked
-                ? await CommentAPIService.unlikeComment(token, id)
-                : await CommentAPIService.likeComment(token, id);
-
-            if (!res.success) {
-                // Revert optimistic update
-                setComments(prev => prev.map(c =>
-                    c.id === id
-                        ? { ...c, _optimisticLike: undefined, _likeCount: undefined }
-                        : c
-                ));
-            } else {
-                await fetchComments();
-            }
-        } finally {
-            pendingLikesRef.current.delete(id);
-        }
-    };
-
-    const debouncedLikeAPIRef = useRef(
-        debounce((id: number, isLiked: boolean) => {
-            return performLikeAPIRef.current?.(id, isLiked);
-        }, 300)
-    );
-
-    const toggleLike = useCallback((id: number, isLiked: boolean): void => {
-        setComments(prev => prev.map(c => {
-            if (c.id !== id) return c;
-            // Handle both naming conventions for current count
-            const currentCount = c._likeCount ?? c.likesCount ?? c.likes_count ?? 0;
-            const newCount = isLiked ? currentCount - 1 : currentCount + 1;
+    const toggleLike = useCallback((id: number, isCurrentlyLiked: boolean) => {
+        
+        setComments(prev => prev.map(comment => {
+            if (comment.id !== id) return comment;
+            
+            const currentLikes = comment._likeCount ?? comment.likesCount ?? comment.likes_count ?? 0;
+            const newLikes = isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1;
+            
             return {
-                ...c,
-                _optimisticLike: !isLiked,
-                _likeCount: newCount,
-                isLiked: !isLiked,
-                is_liked: !isLiked,
-                likesCount: newCount,
-                likes_count: newCount,
+                ...comment,
+                _likeCount: newLikes,
+                _optimisticLike: true,
+                likesCount: newLikes,
+                likes_count: newLikes,
+                isLiked: !isCurrentlyLiked,
+                is_liked: !isCurrentlyLiked,
             };
         }));
-        debouncedLikeAPIRef.current(id, isLiked);
-    }, []);
+        
+        const performLike = async () => {
+            if (!token) return;
+            
+            if (pendingLikesRef.current.has(id)) return;
+            pendingLikesRef.current.add(id);
+            
+            try {
+                const res = isCurrentlyLiked
+                    ? await CommentAPIService.unlikeComment(token, id)
+                    : await CommentAPIService.likeComment(token, id);
+                
+                if (!res.success) {
+                    await fetchComments();
+                }
+            } catch (error) {
+                console.error('💥 [toggleLike] Error:', error);
+                await fetchComments();
+            } finally {
+                pendingLikesRef.current.delete(id);
+            }
+        };
+        
+        const timeoutId = setTimeout(() => {
+            performLike();
+        }, 300);
+        
+        return () => clearTimeout(timeoutId);
+    }, [token, fetchComments]);
 
-    const loadMore = useCallback(() => {
-        // Placeholder for future pagination
-    }, []);
+    const loadMore = useCallback(() => {}, []);
 
     return {
         comments: sortedComments,

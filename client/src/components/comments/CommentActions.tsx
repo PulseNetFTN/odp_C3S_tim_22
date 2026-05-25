@@ -7,6 +7,7 @@ interface CommentActionsProps {
     isOwner: boolean;
     isAuthenticated: boolean;
     onLike: () => void;
+    isRootComment?: boolean;
     onReply: () => void;
     onEdit: () => void;
     onDelete: () => void;
@@ -21,6 +22,7 @@ export default function CommentActions({
     onReply,
     onEdit,
     onDelete,
+    isRootComment
 }: CommentActionsProps) {
     const [isLiking, setIsLiking] = useState(false);
 
@@ -62,7 +64,7 @@ export default function CommentActions({
             </button>
 
             {/* Reply - available at all depths */}
-            {isAuthenticated && (
+            {isAuthenticated && isRootComment && (
                 <button
                     onClick={onReply}
                     className="text-xs text-muted-soft hover:text-muted transition-colors flex items-center gap-1.5"
