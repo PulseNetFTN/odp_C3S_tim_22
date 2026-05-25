@@ -41,8 +41,10 @@ export class HealthController {
 
     private async failover(req: Request, res: Response): Promise<void> {
         try {
-            const { slaveIndex } = req.body;
-            if (slaveIndex === undefined || isNaN(Number(slaveIndex))) {
+            const { slaveIndex, slaveId } = req.body;
+            const index = Number(slaveIndex ?? slaveId);
+            
+            if (isNaN(index) || !Number.isInteger(index) || index < 0 || index > 1) {
                 await this.auditService.log({
                     userId: req.user?.id ?? null,
                     action: 'FAILOVER_INVALID_REQUEST',
@@ -52,11 +54,11 @@ export class HealthController {
                     userAgent: req.headers['user-agent'] ?? null,
                     details: JSON.stringify({ 
                         error: 'Invalid slaveIndex',
-                        providedSlaveIndex: slaveIndex 
+                        providedSlaveIndex: slaveIndex ?? slaveId
                     })
                 }).catch(() => {});
 
-                res.status(400).json({ success: false, message: 'Invalid slaveIndex' });
+                res.status(400).json({ success: false, message: 'Invalid slaveIndex. Must be 0 or 1.' });
                 return;
             }
 
@@ -70,12 +72,12 @@ export class HealthController {
                 details: JSON.stringify({ 
                     action: 'manual_failover',
                     triggeredBy: req.user!.username,
-                    slaveIndex: Number(slaveIndex),
+                    slaveIndex: index,
                     timestamp: new Date().toISOString()
                 })
             });
 
-            const result = promoteSlaveToMaster(Number(slaveIndex));
+            const result = promoteSlaveToMaster(index);
             
             if (result.success) {
                 await this.auditService.log({
@@ -87,7 +89,7 @@ export class HealthController {
                     userAgent: req.headers['user-agent'] ?? null,
                     details: JSON.stringify({ 
                         message: result.message,
-                        slaveIndex: Number(slaveIndex)
+                        slaveIndex: index
                     })
                 });
             } else {
@@ -100,7 +102,7 @@ export class HealthController {
                     userAgent: req.headers['user-agent'] ?? null,
                     details: JSON.stringify({ 
                         error: result.message,
-                        slaveIndex: Number(slaveIndex)
+                        slaveIndex: index
                     })
                 });
             }
