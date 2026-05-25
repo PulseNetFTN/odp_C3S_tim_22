@@ -9,7 +9,7 @@ interface Props {
   onUpdate: () => void;
 }
 
-export function JoinButton({ communityId, memberCount, isJoined, onUpdate }: Props) {
+export function CommunityJoinButton({ communityId, memberCount, isJoined, onUpdate }: Props) {
   const [joined, setJoined] = useState(isJoined);
   const [pending, setPending] = useState(false);
   const [hov, setHov] = useState(false);
