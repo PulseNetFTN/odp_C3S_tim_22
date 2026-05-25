@@ -19,7 +19,7 @@ export interface ICommunityService {
     getUserCommunities(input: GetUserCommunitiesInput): Promise<ServiceResult<CommunityDto[]>>;
     searchCommunities(input: SearchCommunitiesInput): Promise<ServiceResult<CommunityDto[]>>;
     updateCommunity(input: UpdateCommunityInput): Promise<ServiceResult<CommunityDto>>;
-    deleteCommunity(input: DeleteCommunityInput): Promise<ServiceResult<boolean>>;
+    deleteCommunity(input: DeleteCommunityInput, isAdmin: boolean): Promise<ServiceResult<boolean>>;
     joinCommunity(input: JoinCommunityInput): Promise<ServiceResult<boolean>>;
     leaveCommunity(input: LeaveCommunityInput): Promise<ServiceResult<boolean>>;
 }

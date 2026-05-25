@@ -98,14 +98,14 @@ export class CommunityService implements ICommunityService {
         return { success: true, data: dto };
     }
 
-    async deleteCommunity(input: DeleteCommunityInput): Promise<ServiceResult<boolean>> {
+    async deleteCommunity(input: DeleteCommunityInput, isAdmin: boolean): Promise<ServiceResult<boolean>> {
         const existing = await this.communityRepository.getById(input.communityId);
         if (!existing) {
             return { success: false, message: 'Community not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
         const member = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (!member || member.role !== CommunityRole.Moderator) {
+        if (!member || (member.role !== CommunityRole.Moderator && !isAdmin)) {
             return { success: false, message: 'Only moderators can delete the community', errorCode: ErrorCode.FORBIDDEN };
         }
 

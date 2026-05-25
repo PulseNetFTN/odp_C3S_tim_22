@@ -143,8 +143,8 @@ export class CommunityController {
                 return;
             }
             const result = await this.communityService.deleteCommunity({
-                communityId: id, requesterId: req.user!.id,
-            });
+                communityId: id, requesterId: req.user!.id
+            }, req.user!.role === UserRole.Admin);
             sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
