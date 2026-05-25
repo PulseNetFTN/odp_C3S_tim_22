@@ -1,7 +1,7 @@
 import { TagDto } from '../../Domain/DTOs/tags/TagDto';
 import { ErrorCode } from '../../Domain/enums/ErrorCode';
 import { Tag } from '../../Domain/models/Tag';
-import { ITagRepository } from '../../Domain/repositories/tags/ITagRepository';
+import { ITagRepository } from '../../Domain/repositories/Tags/ITagRepository';
 import { ITagService } from '../../Domain/services/tags/ITagService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
 import { CreateTagInput, UpdateTagInput, DeleteTagInput } from '../../Domain/types/inputs/TagInputs';
