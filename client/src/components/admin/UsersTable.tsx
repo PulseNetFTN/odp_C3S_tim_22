@@ -140,7 +140,6 @@ export default function UsersTable({ token }: Props) {
                     
                     setUsers(usersArray);
                 } else if (!ignore) {
-                    // Samo ako stvarno nema podataka i request nije uspio
                     if (res.message && !res.data) {
                         setError(res.message);
                     }
@@ -164,25 +163,20 @@ export default function UsersTable({ token }: Props) {
     const updateRole = async (userId: number, newRole: string) => {
         if (!token) return;
 
-        // Store the old user for rollback
         const oldUser = users.find(u => u.id === userId);
         if (!oldUser) return;
 
-        // Optimistic update - update local state immediately
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
         setUpdatingRole(userId);
 
         try {
-            // Call API to persist the change
             const res = await AdminAPIService.updateUserRole(token, userId, newRole);
             
             if (!res.success) {
-                // Rollback on failure
                 setUsers(prev => prev.map(u => u.id === userId ? oldUser : u));
                 setError(res.message ?? 'Failed to update role');
             }
         } catch (err) {
-            // Rollback on error
             setUsers(prev => prev.map(u => u.id === userId ? oldUser : u));
             console.error('Failed to update role:', err);
             setError('Failed to update role. Please try again.');

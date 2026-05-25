@@ -1,7 +1,6 @@
-// src/components/admin/HealthMonitor.tsx
 import { useState, useEffect, useRef } from 'react';
 import { AdminAPIService } from '../../api_services/admin/AdminAPIService';
-import type { HealthStatus } from '../../api_services/admin/IAdminAPIService';
+import type { HealthStatus, NodeStatus } from '../../api_services/admin/IAdminAPIService';
 import { useAuth } from '../../hooks/auth/useAuthHook';
 
 interface Props {
@@ -29,7 +28,6 @@ function HealthCard({ name, status, port }: HealthCardProps) {
         }
     };
 
-    // Funkcija za boju statusa
     const getStatusColor = (statusValue: string) => {
         switch (statusValue) {
             case 'up':
@@ -214,7 +212,6 @@ export default function HealthMonitor({ onRefresh }: Props) {
             return;
         }
 
-        // Find the index of the first slave that is up (0 = slave1, 1 = slave2)
         const slaveIndex = health.slave1?.status === 'up' || health.slave1?.status === 'healthy' ? 0 
             : health.slave2?.status === 'up' || health.slave2?.status === 'healthy' ? 1 : null;
 
@@ -249,31 +246,48 @@ export default function HealthMonitor({ onRefresh }: Props) {
         }
     };
 
-    // Helper funkcija za normalizaciju statusa
-    const normalizeStatus = (nodeStatus: any) => {
-        if (!nodeStatus) return { status: 'unreachable', latency: 0, lastChecked: null };
+    // Type guard za NodeStatus
+    const isNodeStatusObject = (status: unknown): status is NodeStatus => {
+        return (
+            typeof status === 'object' &&
+            status !== null &&
+            'status' in status &&
+            typeof (status as NodeStatus).status === 'string'
+        );
+    };
+
+    const normalizeStatus = (nodeStatus: unknown): { status: 'up' | 'down' | 'degraded' | 'unreachable'; latency: number; lastChecked: string | null } => {
+        if (!nodeStatus) {
+            return { status: 'unreachable', latency: 0, lastChecked: null };
+        }
         
-        // Ako je status string
+        // Ako je string
         if (typeof nodeStatus === 'string') {
-            let normalizedStatus = nodeStatus;
-            if (nodeStatus === 'up') normalizedStatus = 'healthy';
-            if (nodeStatus === 'down') normalizedStatus = 'unreachable';
+            let normalizedStatus: 'up' | 'down' | 'degraded' | 'unreachable' = 'unreachable';
+            if (nodeStatus === 'up') normalizedStatus = 'up';
+            if (nodeStatus === 'down') normalizedStatus = 'down';
+            if (nodeStatus === 'degraded') normalizedStatus = 'degraded';
             return { status: normalizedStatus, latency: 0, lastChecked: null };
         }
         
-        // Ako je status objekat
-        let statusValue = nodeStatus.status;
-        if (statusValue === 'up') statusValue = 'healthy';
-        if (statusValue === 'down') statusValue = 'unreachable';
+        // Ako je objekt sa status propertyjem
+        if (isNodeStatusObject(nodeStatus)) {
+            let statusValue: 'up' | 'down' | 'degraded' | 'unreachable' = 'unreachable';
+            if (nodeStatus.status === 'up') statusValue = 'up';
+            if (nodeStatus.status === 'down') statusValue = 'down';
+            if (nodeStatus.status === 'degraded') statusValue = 'degraded';
+            if (nodeStatus.status === 'healthy') statusValue = 'up';
+            
+            return {
+                status: statusValue,
+                latency: nodeStatus.latency ?? 0,
+                lastChecked: nodeStatus.lastChecked ?? null
+            };
+        }
         
-        return {
-            status: statusValue,
-            latency: nodeStatus.latency || 0,
-            lastChecked: nodeStatus.lastChecked || null
-        };
+        return { status: 'unreachable', latency: 0, lastChecked: null };
     };
 
-    // Loading state - prvi put kad nema podataka
     if (loading && !health && !error) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -284,7 +298,6 @@ export default function HealthMonitor({ onRefresh }: Props) {
         );
     }
 
-    // Error state - SAMO ako nema health podataka
     if (error && !health) {
         return (
             <div className="text-center py-12">
@@ -311,8 +324,6 @@ export default function HealthMonitor({ onRefresh }: Props) {
         { name: 'Slave 1', status: normalizeStatus(health.slave1), port: 3307 },
         { name: 'Slave 2', status: normalizeStatus(health.slave2), port: 3308 },
     ];
-
-    // Dohvati replication delay
     const replicationDelay = typeof health.replicationDelay === 'number' ? health.replicationDelay : 0;
 
     return (
@@ -337,7 +348,7 @@ export default function HealthMonitor({ onRefresh }: Props) {
                 </div>
             </div>
 
-            {/* Error message inside content - ne blokira prikaz ako health postoji */}
+            {}
             {error && health && (
                 <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded text-sm text-yellow-400">
                     {error}

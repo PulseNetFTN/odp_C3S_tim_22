@@ -1,4 +1,3 @@
-// src/components/admin/AuditLogTable.tsx
 import { useState, useEffect, useRef } from 'react';
 import { AdminAPIService } from '../../api_services/admin/AdminAPIService';
 import type { AuditLog } from '../../api_services/admin/IAdminAPIService';
@@ -11,14 +10,6 @@ interface AuditCardProps {
     log: AuditLog;
     isExpanded: boolean;
     onToggle: () => void;
-}
-
-interface PaginatedAuditResponse {
-    data: AuditLog[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
 }
 
 function AuditCard({ log, isExpanded, onToggle }: AuditCardProps) {
@@ -162,24 +153,20 @@ export default function AuditLogTable({ token }: Props) {
                     let totalVal = 0;
                     let totalPagesVal = 1;
                     
-                    // Handle different response formats (same pattern as UsersTable)
                     if (Array.isArray(res.data)) {
                         logsArray = res.data;
                         totalVal = res.data.length;
                     } else if (res.data && typeof res.data === 'object') {
-                        // Check for paginated response with data.data
                         if (Array.isArray(res.data.data)) {
                             logsArray = res.data.data;
                             totalVal = res.data.total || res.data.data.length;
                             totalPagesVal = res.data.totalPages || 1;
                         }
-                        // Check for response with logs array (backend format)
                         else if (Array.isArray(res.data.logs)) {
                             logsArray = res.data.logs;
                             totalVal = res.data.total || res.data.logs.length;
                             totalPagesVal = Math.ceil(totalVal / limit);
                         }
-                        // Check if data itself is an object with array property
                         else {
                             const possibleArrays = Object.values(res.data).filter(v => Array.isArray(v));
                             if (possibleArrays.length > 0) {
@@ -189,7 +176,6 @@ export default function AuditLogTable({ token }: Props) {
                         }
                     }
                     
-                    console.log('📊 Parsed logs:', logsArray.length);
                     setLogs(logsArray);
                     setTotal(totalVal);
                     setTotalPages(totalPagesVal);

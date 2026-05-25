@@ -43,6 +43,12 @@ export interface AuditLog {
     createdAt: string;
 }
 
+export interface NodeStatus {
+    status: 'up' | 'down' | 'degraded' | 'unreachable' | 'healthy';
+    latency: number;
+    lastChecked: string | null;
+}
+
 export interface HealthStatus {
     master: {
         status: 'up' | 'down';

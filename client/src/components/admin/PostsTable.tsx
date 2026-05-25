@@ -1,4 +1,3 @@
-// src/components/admin/PostsTable.tsx
 import { useState, useEffect, useRef } from 'react';
 import { AdminAPIService } from '../../api_services/admin/AdminAPIService';
 import type { PostDto } from '../../models/posts/PostsDto';
@@ -227,7 +226,6 @@ export default function PostsTable({ token }: Props) {
             const res = await AdminAPIService.deletePost(token ?? '', postId);
             
             if (res.success) {
-                // Remove post from list
                 setPosts(prev => prev.filter(p => p.id !== postId));
                 console.log(`Post ${postId} deleted successfully`);
             } else {

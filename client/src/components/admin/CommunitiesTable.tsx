@@ -1,4 +1,3 @@
-// src/components/admin/CommunitiesTable.tsx
 import { useState, useEffect, useRef } from 'react';
 import { AdminAPIService } from '../../api_services/admin/AdminAPIService';
 import type { CommunityDto } from '../../models/communities/CommunityDto';
@@ -162,7 +161,6 @@ function CommunityCard({ community, onDelete, isDeleting }: CommunityCardProps) 
     );
 }
 
-// Type guard for paginated response
 function isPaginatedResponse<T>(data: unknown): data is PaginatedResponse<T> {
     return (
         typeof data === 'object' &&
