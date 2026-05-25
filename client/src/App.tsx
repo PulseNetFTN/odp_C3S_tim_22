@@ -7,6 +7,7 @@ import FeedPage from './pages/feed/FeedPage';
 import AboutPage from './pages/info/AboutPage';
 import HelpPage from './pages/info/HelpPage';
 import NotFoundPage from './pages/not_found/NotFoundPage';
+import ProfilePage from './pages/profile/ProfilePage';
 
 export default function App() {
     return (
@@ -18,6 +19,7 @@ export default function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/help" element={<HelpPage />} />     
             <Route path="/feed" element={<FeedPage />} />
+            <Route path="profile" element={<ProfilePage/>} />
 
             <Route
                 path="/admin"
