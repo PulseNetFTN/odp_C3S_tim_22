@@ -138,22 +138,21 @@ export function getReadConnection(): ServiceResult<Pool> {
 }
 
 export function getHealthStatus() {
-    const nodes = [currentMaster, ...slaveNodes];
     return {
         master: {
-            status: nodes[0]?.status ?? 'unreachable' as const,
-            latency: nodes[0]?.responseTime ?? 0,
-            lastChecked: nodes[0]?.lastChecked?.toISOString() ?? new Date().toISOString(),
+            status: currentMaster?.status ?? 'unreachable' as const,
+            latency: currentMaster?.responseTime ?? 0,
+            lastChecked: currentMaster?.lastChecked?.toISOString() ?? new Date().toISOString(),
         },
         slave1: {
-            status: nodes[1]?.status ?? 'unreachable' as const,
-            latency: nodes[1]?.responseTime ?? 0,
-            lastChecked: nodes[1]?.lastChecked?.toISOString() ?? new Date().toISOString(),
+            status: slaveNodes[0]?.status ?? 'unreachable' as const,
+            latency: slaveNodes[0]?.responseTime ?? 0,
+            lastChecked: slaveNodes[0]?.lastChecked?.toISOString() ?? new Date().toISOString(),
         },
         slave2: {
-            status: nodes[2]?.status ?? 'unreachable' as const,
-            latency: nodes[2]?.responseTime ?? 0,
-            lastChecked: nodes[2]?.lastChecked?.toISOString() ?? new Date().toISOString(),
+            status: slaveNodes[1]?.status ?? 'unreachable' as const,
+            latency: slaveNodes[1]?.responseTime ?? 0,
+            lastChecked: slaveNodes[1]?.lastChecked?.toISOString() ?? new Date().toISOString(),
         },
     };
 }
