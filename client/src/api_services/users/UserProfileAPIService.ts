@@ -27,7 +27,7 @@ export const UserProfileAPIService = {
     getUserFollowing: (userId: number): Promise<ApiResponse<UserDto[]>> =>
         apiGet<UserDto[]>(`users/${userId}/following`),
 
-    removeFollower: (followerId: number, _token: string): Promise<ApiResponse<boolean>> =>
+    removeFollower: (followerId: number): Promise<ApiResponse<boolean>> =>
         apiDelete<boolean>(`users/followers/${followerId}`),
 
     getUserCommunities: (): Promise<ApiResponse<UserCommunityDto[]>> =>

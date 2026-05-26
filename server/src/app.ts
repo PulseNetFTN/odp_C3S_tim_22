@@ -14,7 +14,7 @@ import { CommentQueryRepository } from './Database/repositories/comments/Comment
 import { CommentLikeRepository } from './Database/repositories/comments/CommentLikeRepository';
 import { CommunityRepository } from './Database/repositories/Community/CommunityRepository';
 import { CommunityMemberRepository } from './Database/repositories/Community/CommunityMemberRepository';
-import { TagRepository } from './Database/repositories/tags/TagRepository';
+import { TagRepository } from './Database/repositories/Tags/TagRepository';
 import { AuditRepository } from './Database/repositories/audits/AuditRepository';
 
 // Services
@@ -23,7 +23,7 @@ import { UserService } from './Services/users/UserService';
 import { PostService } from './Services/post/PostService';
 import { CommentService } from './Services/comments/CommentService';
 import { CommunityService } from './Services/Communities/CommunityService';
-import { TagService } from './Services/tags/TagService';
+import { TagService } from './Services/Tags/TagService';
 import { AuditService } from './Services/audit/AuditService';
 import { CommunityMemberService } from './Services/Communities/CommunityMemberService';
 

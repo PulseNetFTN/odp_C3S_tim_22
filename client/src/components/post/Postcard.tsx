@@ -137,7 +137,7 @@ export default function PostCard(props: PostCardProps) {
                 </div>
             </div>
             {/* Title */}
-            <Link to={`/posts/${props.id}`} className="no-underline">
+            <Link to={`/post/${props.id}/comments`} className="no-underline">
                 <h3 className="px-4 pt-1 pb-1 text-[15px] font-semibold text-white/90 leading-snug hover:text-white transition-colors">
                     {props.title}
                 </h3>

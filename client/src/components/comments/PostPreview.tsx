@@ -73,7 +73,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
             </div>
 
             {/* Title */}
-            <Link to={`/posts/${post.id}`} className="no-underline">
+            <Link to={`/post/${post.id}/comments`} className="no-underline">
                 <h2 className="px-4 pt-2 pb-1 text-lg font-semibold text-white/90 leading-snug hover:text-white transition-colors">
                     {post.title}
                 </h2>

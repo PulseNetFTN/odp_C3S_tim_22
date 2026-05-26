@@ -69,7 +69,7 @@ export class CommentController {
                 res.status(400).json({ success: false, message: 'Invalid post id' });
                 return;
             }
-            const parentIdNum = parentId !== undefined ? Number(parentId) : null;
+            const parentIdNum = parentId !== 0 ? Number(parentId) : null;
             const validation = validateCommentContent(content, parentIdNum);
 
             if (!validation.valid) {
