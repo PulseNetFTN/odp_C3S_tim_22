@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { getHealthStatus, promoteSlaveToMaster } from '../../Database/connection/DbConnectionPool';
+import { getHealthStatus, getReadConnection, getWriteConnection, promoteSlaveToMaster } from '../../Database/connection/DbConnectionPool';
 import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { authorize } from '../../Middlewares/authorization/AuthorizeMiddleware';
 import { UserRole } from '../../Domain/enums/UserRole';
@@ -20,7 +20,7 @@ export class HealthController {
     private initializeRoutes(): void {
         this.router.get('/health', this.healthCheck.bind(this));
         this.router.get('/health/db', authenticate, authorize(UserRole.Admin), this.dbHealth.bind(this));
-        this.router.post('/health/failover', authenticate, authorize(UserRole.Admin), this.failover.bind(this));
+        this.router.post('/health/failover', authenticate, authorize(UserRole.Admin), this.triggerFailover.bind(this));
     }
 
     private healthCheck(req: Request, res: Response): void {
@@ -28,10 +28,39 @@ export class HealthController {
         sendServiceResult(res, result);
     }
 
-    private dbHealth(req: Request, res: Response): void {
+    private async dbHealth(req: Request, res: Response): Promise<void> {
         try {
-            const status = getHealthStatus();
-            const result = { success: true, data: status };
+            const nodeStatus = getHealthStatus();
+            const readConn = getReadConnection();
+            const writeConn = getWriteConnection();
+
+            let readPing = false;
+            let writePing = false;
+
+            if (readConn.success && readConn.data) {
+                try {
+                    await readConn.data.query('SELECT 1');
+                    readPing = true;
+                } catch { /* node unreachable */ }
+            }
+
+            if (writeConn.success && writeConn.data) {
+                try {
+                    await writeConn.data.query('SELECT 1');
+                    writePing = true;
+                } catch { /* node unreachable */ }
+            }
+
+            const result = {
+                success: true,
+                data: {
+                    nodes: nodeStatus,
+                    connections: {
+                        read: readPing ? 'ok' : 'unavailable',
+                        write: writePing ? 'ok' : 'unavailable',
+                    },
+                },
+            };
             sendServiceResult(res, result);
         } catch {
             const result = { success: false, message: 'Failed to retrieve DB health status', errorCode: ErrorCode.INTERNAL_ERROR };
@@ -39,89 +68,21 @@ export class HealthController {
         }
     }
 
-    private async failover(req: Request, res: Response): Promise<void> {
+    private triggerFailover(req: Request, res: Response): void {
         try {
-            const { slaveIndex } = req.body;
-            if (slaveIndex === undefined || isNaN(Number(slaveIndex))) {
-                await this.auditService.log({
-                    userId: req.user?.id ?? null,
-                    action: 'FAILOVER_INVALID_REQUEST',
-                    entityType: 'database',
-                    entityId: null,
-                    ipAddress: req.ip ?? null,
-                    userAgent: req.headers['user-agent'] ?? null,
-                    details: JSON.stringify({ 
-                        error: 'Invalid slaveIndex',
-                        providedSlaveIndex: slaveIndex 
-                    })
-                }).catch(() => {});
-
-                res.status(400).json({ success: false, message: 'Invalid slaveIndex' });
+            const { slaveId } = req.body;
+            if (typeof slaveId !== 'number' || isNaN(slaveId)) {
+                res.status(400).json({ success: false, message: 'Invalid slave ID' });
                 return;
             }
-
-            await this.auditService.log({
-                userId: req.user!.id,
-                action: 'FAILOVER_TRIGGER',
-                entityType: 'database',
-                entityId: null,
-                ipAddress: req.ip ?? null,
-                userAgent: req.headers['user-agent'] ?? null,
-                details: JSON.stringify({ 
-                    action: 'manual_failover',
-                    triggeredBy: req.user!.username,
-                    slaveIndex: Number(slaveIndex),
-                    timestamp: new Date().toISOString()
-                })
-            });
-
-            const result = promoteSlaveToMaster(Number(slaveIndex));
-            
-            if (result.success) {
-                await this.auditService.log({
-                    userId: req.user!.id,
-                    action: 'FAILOVER_SUCCESS',
-                    entityType: 'database',
-                    entityId: null,
-                    ipAddress: req.ip ?? null,
-                    userAgent: req.headers['user-agent'] ?? null,
-                    details: JSON.stringify({ 
-                        message: result.message,
-                        slaveIndex: Number(slaveIndex)
-                    })
-                });
-            } else {
-                await this.auditService.log({
-                    userId: req.user!.id,
-                    action: 'FAILOVER_FAILED',
-                    entityType: 'database',
-                    entityId: null,
-                    ipAddress: req.ip ?? null,
-                    userAgent: req.headers['user-agent'] ?? null,
-                    details: JSON.stringify({ 
-                        error: result.message,
-                        slaveIndex: Number(slaveIndex)
-                    })
-                });
+            const result = promoteSlaveToMaster(slaveId);
+            if (!result.success) {
+                res.status(400).json({ success: false, message: result.message ?? 'Failover failed' });
+                return;
             }
-            
-            sendServiceResult(res, result);
-        } catch (error) {
-            await this.auditService.log({
-                userId: req.user?.id ?? null,
-                action: 'FAILOVER_ERROR',
-                entityType: 'database',
-                entityId: null,
-                ipAddress: req.ip ?? null,
-                userAgent: req.headers['user-agent'] ?? null,
-                details: JSON.stringify({ 
-                    error: String(error),
-                    slaveIndex: req.body?.slaveIndex 
-                })
-            }).catch(() => {});
-            
-            const result = { success: false, message: 'Failover failed', errorCode: ErrorCode.INTERNAL_ERROR };
-            sendServiceResult(res, result);
+            res.status(200).json({ success: true, data: { message: result.data ?? `Failover to slave index ${slaveId} triggered` } });
+        } catch {
+            res.status(500).json({ success: false, message: 'Failed to trigger failover' });
         }
     }
 

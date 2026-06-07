@@ -17,6 +17,7 @@ import { IPostService } from '../../Domain/services/post/IPostService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
 import * as PostInputs from '../../Domain/types/inputs/PostInputs';
 import { CommunityRole } from '../../Domain/enums/CommunityRole';
+import { UserRole } from '../../Domain/enums/UserRole';
 
 export class PostService implements IPostService {
     public constructor(
@@ -32,19 +33,16 @@ export class PostService implements IPostService {
     ) {}
 
     private async buildPostDto(post: Post, requesterId: number | null): Promise<PostDto> {
-        const [authorResult, communityResult, likeCount, commentCount, tagIds] = await Promise.all([
+        const [authorResult, communityResult, likeCount, commentCount, tagIds, isLiked] = await Promise.all([
             this.userRepository.getById(post.authorId),
             this.communityRepository.getById(post.communityId),
             this.postLikeRepository.getLikeCount(post.id),
             this.postCommentRepository.getCommentCount(post.id),
             this.postTagRepository.getTagIds(post.id),
+            requesterId ? this.postLikeRepository.hasLiked(requesterId, post.id) : Promise.resolve(false),
         ]);
 
         const tags = await this.tagRepository.getByIds(tagIds);
-
-        const isLiked = requesterId
-            ? await this.postLikeRepository.hasLiked(requesterId, post.id)
-            : false;
 
         return new PostDto(
             post.id, post.title, post.content, post.mediaUrl,
@@ -121,7 +119,10 @@ export class PostService implements IPostService {
         const post = postResult.data;
 
         if (input.tagIds.length > 0) {
-            await this.postTagRepository.addTags(post.id, input.tagIds);
+            const tagsAdded = await this.postTagRepository.addTags(post.id, input.tagIds);
+            if (!tagsAdded) {
+                return { success: false, message: 'Failed to add tags to post', errorCode: ErrorCode.INTERNAL_ERROR };
+            }
         }
 
         const dto = await this.buildPostDto(post, input.authorId);
@@ -196,12 +197,15 @@ export class PostService implements IPostService {
         }
         const post = postResult.data;
 
-        const memberResult = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
+        const isAdmin = input.requesterRole === UserRole.Admin;
         const isAuthor = post.authorId === input.requesterId;
-        const isModerator = memberResult.ok && memberResult.data.role === CommunityRole.Moderator;
 
-        if (!isAuthor && !isModerator) {
-            return { success: false, message: 'Not authorized to update this post', errorCode: ErrorCode.FORBIDDEN };
+        if (!isAdmin && !isAuthor) {
+            const memberResult = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
+            const isModerator = memberResult.ok && memberResult.data.role === CommunityRole.Moderator;
+            if (!isModerator) {
+                return { success: false, message: 'Not authorized to update this post', errorCode: ErrorCode.FORBIDDEN };
+            }
         }
 
         const updateResult = await this.postRepository.update(
@@ -222,12 +226,15 @@ export class PostService implements IPostService {
         }
         const post = postResult.data;
 
-        const memberResult = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
+        const isAdmin = input.requesterRole === UserRole.Admin;
         const isAuthor = post.authorId === input.requesterId;
-        const isModerator = memberResult.ok && memberResult.data.role === CommunityRole.Moderator;
 
-        if (!isAuthor && !isModerator) {
-            return { success: false, message: 'Not authorized to delete this post', errorCode: ErrorCode.FORBIDDEN };
+        if (!isAdmin && !isAuthor) {
+            const memberResult = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
+            const isModerator = memberResult.ok && memberResult.data.role === CommunityRole.Moderator;
+            if (!isModerator) {
+                return { success: false, message: 'Not authorized to delete this post', errorCode: ErrorCode.FORBIDDEN };
+            }
         }
 
         const result = await this.postRepository.delete(input.postId);

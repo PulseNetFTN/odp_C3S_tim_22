@@ -10,27 +10,7 @@ import { useAuth } from '../../hooks/auth/useAuthHook';
 import { postApi } from '../../api_services/post/PostAPIService';
 import { communityApi } from '../../api_services/community/CommunityAPIService';
 import type { PostDto } from '../../models/posts/PostsDto';
-
-// BBCode renderer
-function renderBBCode(raw: string): string {
-  let html = raw
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  html = html.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
-  html = html.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
-  html = html.replace(/\[u\]([\s\S]*?)\[\/u\]/gi, '<u>$1</u>');
-  html = html.replace(/\[h\]([\s\S]*?)\[\/h\]/gi, '<h3 style="font-size:1.15em;font-weight:700;margin:0.5em 0 0.25em;">$1</h3>');
-  html = html.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, '<blockquote style="border-left:3px solid rgba(108,99,255,0.4);padding:0.5em 1em;margin:0.5em 0;color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.03);border-radius:4px;">$1</blockquote>');
-  html = html.replace(/\[code\]([\s\S]*?)\[\/code\]/gi, '<pre style="background:rgba(255,255,255,0.05);padding:0.75em 1em;border-radius:6px;font-family:monospace;font-size:0.85em;overflow-x:auto;">$1</pre>');
-  html = html.replace(/\[url=(.*?)\]([\s\S]*?)\[\/url\]/gi, '<a href="$1" style="color:#6c63ff;text-decoration:underline;" target="_blank" rel="noopener">$2</a>');
-  html = html.replace(/\[\*\](.*?)(?:\n|$)/gi, '<li style="margin-left:1.25em;">$1</li>');
-  html = html.replace(/\[img\](.*?)\[\/img\]/gi, '<img src="$1" style="max-width:100%;border-radius:8px;margin:0.5em 0;" />');
-  html = html.replace(/\n/g, '<br/>');
-
-  return html;
-}
+import { renderBBCode } from '../../utils/bbcode';
 
 // Time ago helper
 function timeAgo(dateStr: string | null): string {
@@ -103,17 +83,11 @@ export default function PostDetailPage() {
   }, [postId, user]);
 
   async function handlePostLike() {
-    if (!user || likeLoading) return;
+    if (!canLike || likeLoading) return;
     setLikeLoading(true);
     try {
-      const storedToken = localStorage.getItem('token');
-      const method = liked ? 'DELETE' : 'POST';
-      const res = await fetch(`${import.meta.env.VITE_API_URL ?? ''}posts/${postId}/like`, {
-        method,
-        headers: { Authorization: `Bearer ${storedToken}`, 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-      if (data.success) {
+      const res = liked ? await postApi.unlike(postId) : await postApi.like(postId);
+      if (res.success) {
         setLiked(!liked);
         setLikeCount(prev => liked ? prev - 1 : prev + 1);
       }
@@ -164,6 +138,7 @@ export default function PostDetailPage() {
 
   const isAuthor = user?.id === post.authorId;
   const isAdmin = user?.role === 'admin';
+  const canLike = !!user && !isAuthor;
 
   return (
     <AppLayout communities={myCommunities}>
@@ -279,12 +254,12 @@ export default function PostDetailPage() {
           >
             <button
               onClick={handlePostLike}
-              disabled={!user || likeLoading}
+              disabled={!canLike || likeLoading}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
               style={{
                 background: 'none',
                 border: 'none',
-                cursor: user ? 'pointer' : 'default',
+                cursor: canLike ? 'pointer' : 'default',
                 color: liked ? 'var(--color-pulse, #6c63ff)' : 'rgba(255,255,255,0.45)',
               }}
             >

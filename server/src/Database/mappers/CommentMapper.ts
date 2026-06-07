@@ -1,9 +1,9 @@
-import { RowDataPacket } from 'mysql2';
+import { QueryResultRow } from 'pg';
 import { Comment } from '../../Domain/models/Comment';
 
 export const COMMENT_FIELDS = 'id, post_id, author_id, parent_id, content, is_deleted, is_flagged, created_at, updated_at';
 
-export function mapComment(r: RowDataPacket): Comment {
+export function mapComment(r: QueryResultRow): Comment {
     return new Comment(
         r.id,
         r.post_id,

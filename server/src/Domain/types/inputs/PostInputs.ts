@@ -7,9 +7,12 @@ export type CreatePostInput = {
     tagIds: number[];
 };
 
+import { UserRole } from '../../enums/UserRole';
+
 export type UpdatePostInput = {
     postId: number;
     requesterId: number;
+    requesterRole: UserRole;
     title: string;
     content: string;
     mediaUrl: string | null;
@@ -18,6 +21,7 @@ export type UpdatePostInput = {
 export type DeletePostInput = {
     postId: number;
     requesterId: number;
+    requesterRole: UserRole;
 };
 
 export type GetPostInput = {

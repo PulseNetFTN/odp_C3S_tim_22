@@ -7,7 +7,7 @@ export class CommentQueryRepository extends BaseRepository implements ICommentQu
 
     async exists(id: number): Promise<boolean> {
         const result = await this.executeScalar<number>(
-            'SELECT COUNT(*) as count FROM comments WHERE id = ?',
+            'SELECT COUNT(*)::int as count FROM comments WHERE id = $1',
             [id]
         );
         return result.ok && result.data > 0;
@@ -15,9 +15,7 @@ export class CommentQueryRepository extends BaseRepository implements ICommentQu
 
     async findRootCommentsByPost(postId: number): Promise<Comment[]> {
         return this.executeRead(
-            `SELECT ${COMMENT_FIELDS} FROM comments 
-             WHERE post_id = ? AND parent_id IS NULL 
-             ORDER BY created_at DESC`,
+            `SELECT ${COMMENT_FIELDS} FROM comments WHERE post_id = $1 AND parent_id IS NULL ORDER BY created_at DESC`,
             [postId],
             mapComment
         );
@@ -25,9 +23,7 @@ export class CommentQueryRepository extends BaseRepository implements ICommentQu
 
     async findRepliesByCommentId(commentId: number): Promise<Comment[]> {
         return this.executeRead(
-            `SELECT ${COMMENT_FIELDS} FROM comments 
-             WHERE parent_id = ? 
-             ORDER BY created_at ASC`,
+            `SELECT ${COMMENT_FIELDS} FROM comments WHERE parent_id = $1 ORDER BY created_at ASC`,
             [commentId],
             mapComment
         );
@@ -35,10 +31,7 @@ export class CommentQueryRepository extends BaseRepository implements ICommentQu
 
     async findRepliesPaginated(commentId: number, limit: number, offset: number): Promise<Comment[]> {
         return this.executeRead(
-            `SELECT ${COMMENT_FIELDS} FROM comments 
-             WHERE parent_id = ? 
-             ORDER BY created_at ASC 
-             LIMIT ? OFFSET ?`,
+            `SELECT ${COMMENT_FIELDS} FROM comments WHERE parent_id = $1 ORDER BY created_at ASC LIMIT $2 OFFSET $3`,
             [commentId, limit, offset],
             mapComment
         );
@@ -46,7 +39,7 @@ export class CommentQueryRepository extends BaseRepository implements ICommentQu
 
     async getReplyCount(commentId: number): Promise<number> {
         const result = await this.executeScalar<number>(
-            'SELECT COUNT(*) as count FROM comments WHERE parent_id = ?',
+            'SELECT COUNT(*)::int as count FROM comments WHERE parent_id = $1',
             [commentId]
         );
         return result.ok ? result.data : 0;

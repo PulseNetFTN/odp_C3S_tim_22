@@ -8,4 +8,5 @@ export interface ICommentsAPIService {
     deleteComment(token: string, id: number): Promise<ApiResponse<boolean>>;
     likeComment(token: string, id: number): Promise<ApiResponse<boolean>>;
     unlikeComment(token: string, id: number): Promise<ApiResponse<boolean>>;
+    getRepliesByComment(commentId: number): Promise<ApiResponse<CommentDto[]>>;
 }

@@ -12,11 +12,7 @@ interface CommunityCardProps {
     isDeleting: boolean;
 }
 
-interface PaginatedResponse<T> {
-    data: T[];
-    totalPages: number;
-    total: number;
-}
+
 
 function CommunityCard({ community, onDelete, isDeleting }: CommunityCardProps) {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -161,18 +157,6 @@ function CommunityCard({ community, onDelete, isDeleting }: CommunityCardProps) 
     );
 }
 
-function isPaginatedResponse<T>(data: unknown): data is PaginatedResponse<T> {
-    return (
-        typeof data === 'object' &&
-        data !== null &&
-        'data' in data &&
-        Array.isArray((data as PaginatedResponse<T>).data)
-    );
-}
-
-function isArrayResponse<T>(data: unknown): data is T[] {
-    return Array.isArray(data);
-}
 
 export default function CommunitiesTable({ token }: Props) {
     const [communities, setCommunities] = useState<CommunityDto[]>([]);
@@ -190,28 +174,15 @@ export default function CommunitiesTable({ token }: Props) {
             setLoading(true);
             
             try {
-                const res = await AdminAPIService.getAllCommunities(token ?? '', page, limit);
-                
-                if (!ignore && res.success && res.data) {
-                    let communitiesArray: CommunityDto[] = [];
-                    let totalPagesVal = 1;
-                    let totalVal = 0;
-                    
-                    if (isPaginatedResponse<CommunityDto>(res.data)) {
-                        communitiesArray = res.data.data;
-                        totalPagesVal = res.data.totalPages;
-                        totalVal = res.data.total;
-                    } else if (isArrayResponse<CommunityDto>(res.data)) {
-                        communitiesArray = res.data;
-                        totalVal = res.data.length;
-                    }
-                    
-                    setCommunities(communitiesArray);
-                    setTotalPages(totalPagesVal);
-                    setTotal(totalVal);
-                } else {
-                    setCommunities([]);
-                }
+        const res = await AdminAPIService.getAllCommunities(token ?? '', page, limit);
+
+        if (!ignore && res.success && res.data) {
+            setCommunities(res.data.data);
+            setTotalPages(res.data.totalPages);
+            setTotal(res.data.total);
+        } else {
+            setCommunities([]);
+        }
             } catch (error) {
                 console.error('Failed to load communities:', error);
                 setCommunities([]);

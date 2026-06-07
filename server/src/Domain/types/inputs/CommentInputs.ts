@@ -11,20 +11,23 @@ export type UpdateCommentInput = {
     content: string;
 };
 
+import { UserRole } from '../../enums/UserRole';
+
 export type DeleteCommentInput = {
     commentId: number;
     requesterId: number;
+    requesterRole: UserRole;
 };
 
 export type GetCommentsByPostInput = {
     postId: number;
-    currentUserId: number;
+    currentUserId: number | null;
 };
 
 export type FlagCommentInput = {
     commentId: number;
     requesterId: number;
-    communityId: number;
+    requesterRole: UserRole;
 };
 
 export type LikeCommentInput = {
@@ -39,19 +42,19 @@ export type UnlikeCommentInput = {
 
 export type FindRootCommentsByPostInput = {
     postId: number;
-    currentUserId: number;
+    currentUserId: number | null;
 };
 
 export type FindRepliesByCommentIdInput = {
     commentId: number;
-    currentUserId: number;
+    currentUserId: number | null;
 };
 
 export type FindRepliesPaginatedInput = {
     commentId: number;
     limit: number;
     offset: number;
-    currentUserId: number;
+    currentUserId: number | null;
 };
 
 export type GetReplyCountInput = {

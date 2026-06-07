@@ -75,7 +75,7 @@ export function useParticles(
             const oy = Math.random() * H;
             shapes.push({
                 ox, oy, x: ox, y: oy, vx: 0, vy: 0,
-                size: Math.random() * 8 + 3,
+                size: Math.random() * 4 + 2,
                 type: SHAPE_TYPES[Math.floor(Math.random() * SHAPE_TYPES.length)],
                 rotation: Math.random() * Math.PI * 2,
                 rotSpeed: (Math.random() - 0.5) * 0.01,

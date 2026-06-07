@@ -47,9 +47,9 @@ export class CommentController {
             res.status(400).json({ success: false, message: 'Invalid post id' });
             return;
         }
-        const result = await this.commentService.getCommentsByPost({ 
+        const result = await this.commentService.getCommentsByPost({
             postId,
-            currentUserId: req.user?.id ?? 0,
+            currentUserId: req.user?.id ?? null,
         });
         sendServiceResult(res, result);
     } catch {
@@ -61,15 +61,13 @@ export class CommentController {
         try {
             const body = req.body;
             const content = body.content;
-            const parentId = Number(body.parent_id) ?? Number(body.parentId) ?? undefined;
-            console.log('Received addComment request with body:', req.body, parentId);
-            console.log('Received addComment request with content:', content, 'and parentId:', parentId);
             const postId = Number(req.params.postId);
             if (Number.isNaN(postId) || postId <= 0) {
                 res.status(400).json({ success: false, message: 'Invalid post id' });
                 return;
             }
-            const parentIdNum = parentId !== 0 ? Number(parentId) : null;
+            const rawParentId = body.parent_id ?? body.parentId ?? null;
+            const parentIdNum = rawParentId !== null ? Number(rawParentId) : null;
             const validation = validateCommentContent(content, parentIdNum);
 
             if (!validation.valid) {
@@ -115,7 +113,7 @@ export class CommentController {
                 return;
             }
             const result = await this.commentService.softDeleteComment({
-                commentId, requesterId: req.user!.id,
+                commentId, requesterId: req.user!.id, requesterRole: req.user!.role,
             });
             sendServiceResult(res, result);
         } catch {
@@ -162,7 +160,7 @@ export class CommentController {
                 res.status(400).json({ success: false, message: 'Invalid comment id' });
                 return;
             }
-            const result = await this.commentService.findRepliesByCommentId({ commentId, currentUserId: req.user?.id ?? 0 });
+            const result = await this.commentService.findRepliesByCommentId({ commentId, currentUserId: req.user?.id ?? null });
             sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });

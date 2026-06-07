@@ -69,7 +69,7 @@ export class UserController {
                 return;
             }
             const currentUserId = req.user?.id;
-            const result = await this.userService.getUserProfile(id, currentUserId ?? 0);
+            const result = await this.userService.getUserProfile(id, currentUserId);
             sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
@@ -78,14 +78,14 @@ export class UserController {
 
     private async updateProfile(req: Request, res: Response): Promise<void> {
         try {
-            const { username, email, firstName, lastName, bio, profileImage, password } = req.body;
+            const { username, email, firstName, lastName, bio, profileImage, password, currentPassword } = req.body;
             const validation = validateProfileUpdate(username, email, firstName, lastName, bio, password);
             if (!validation.valid) {
                 res.status(400).json({ success: false, message: validation.message });
                 return;
             }
             const result = await this.userService.updateProfile({
-                userId: req.user!.id, username, email, firstName, lastName, bio, profileImage, password
+                userId: req.user!.id, username, email, firstName, lastName, bio, profileImage, password, currentPassword
             });
             sendServiceResult(res, result);
         } catch {

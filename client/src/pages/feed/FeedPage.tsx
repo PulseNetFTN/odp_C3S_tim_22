@@ -13,6 +13,7 @@ export default function FeedPage() {
     const [communities, setCommunities] = useState<{ id: number; name: string }[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [retryCount, setRetryCount] = useState(0);
 
     useEffect(() => {
         let ignore = false;
@@ -21,11 +22,17 @@ export default function FeedPage() {
             setLoading(true);
             setError('');
 
-            const postData = user
-                ? await postApi.getFeed()
-                : await postApi.getPublicPosts();
+            const [feedData, communityData] = await Promise.all([
+                user ? postApi.getFeed() : postApi.getPublicPosts(),
+                user ? communityApi.getMine() : Promise.resolve(null),
+            ]);
 
             if (ignore) return;
+
+            let postData = feedData;
+            if (user && feedData.success && (feedData.data?.length ?? 0) === 0) {
+                postData = await postApi.getPublicPosts();
+            }
 
             if (postData.success) {
                 setPosts(postData.data ?? []);
@@ -33,20 +40,17 @@ export default function FeedPage() {
                 setError(postData.message || 'Failed to load posts');
             }
 
-            if (user) {
-                const communityData = await communityApi.getMine();
-                if (!ignore && communityData.success && communityData.data) {
-                    setCommunities(communityData.data.map(c => ({ id: c.id, name: c.name })));
-                }
+            if (communityData?.success && communityData.data) {
+                setCommunities(communityData.data.map(c => ({ id: c.id, name: c.name })));                
             }
 
-            if (!ignore) setLoading(false);
+           setLoading(false);
         }
 
         load();
 
         return () => { ignore = true; };
-    }, [user]);
+    }, [user, retryCount]);
 
 
     return (
@@ -74,7 +78,7 @@ export default function FeedPage() {
                     >
                         <p>{error}</p>
                         <button
-                            onClick={() => window.location.reload()}
+                            onClick={() => setRetryCount(c => c + 1)}
                             className="mt-3 text-xs text-pulse hover:underline"
                             style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                         >

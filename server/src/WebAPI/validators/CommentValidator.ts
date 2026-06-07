@@ -1,13 +1,14 @@
 import { ValidationResult } from "../../Domain/types/ValidationResult";
+import { VALIDATION } from '../../constants/validation';
 
 export function validateCommentContent(content: string, parentId: number | null): ValidationResult {
-    if (!content || content.trim().length === 0 || content.trim().length < 1 || content.trim().length > 2000) {
-        return { valid: false, message: 'Content must be between 1 and 2000 characters' };
+    if (!content || content.trim().length < VALIDATION.COMMENT_CONTENT_MIN || content.trim().length > VALIDATION.COMMENT_CONTENT_MAX) {
+        return { valid: false, message: `Content must be between ${VALIDATION.COMMENT_CONTENT_MIN} and ${VALIDATION.COMMENT_CONTENT_MAX} characters` };
     }
 
-    if(parentId !== null && (isNaN(parentId) || parentId < 0)) {
+    if (parentId !== null && (isNaN(parentId) || parentId <= 0)) {
         return { valid: false, message: 'Invalid parent comment ID' };
     }
 
-    return { valid: true};
+    return { valid: true };
 }

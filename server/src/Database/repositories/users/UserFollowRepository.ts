@@ -1,12 +1,11 @@
 import { BaseRepository } from '../BaseRepository';
 import { IUserFollowRepository } from '../../../Domain/repositories/users/IUserFollowRepository';
-import { RowDataPacket } from 'mysql2';
 
 export class UserFollowRepository extends BaseRepository implements IUserFollowRepository {
 
     async follow(followerId: number, followingId: number): Promise<boolean> {
         const result = await this.executeWrite(
-            'INSERT IGNORE INTO user_follows (follower_id, following_id) VALUES (?, ?)',
+            'INSERT INTO user_follows (follower_id, following_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
             [followerId, followingId]
         );
         return result.ok;
@@ -14,7 +13,7 @@ export class UserFollowRepository extends BaseRepository implements IUserFollowR
 
     async unfollow(followerId: number, followingId: number): Promise<boolean> {
         const result = await this.executeWrite(
-            'DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?',
+            'DELETE FROM user_follows WHERE follower_id = $1 AND following_id = $2',
             [followerId, followingId]
         );
         return result.ok && result.data.affectedRows > 0;
@@ -22,7 +21,7 @@ export class UserFollowRepository extends BaseRepository implements IUserFollowR
 
     async isFollowing(followerId: number, followingId: number): Promise<boolean> {
         const result = await this.executeScalar<number>(
-            'SELECT COUNT(*) as count FROM user_follows WHERE follower_id = ? AND following_id = ?',
+            'SELECT COUNT(*)::int as count FROM user_follows WHERE follower_id = $1 AND following_id = $2',
             [followerId, followingId]
         );
         return result.ok && result.data > 0;
@@ -30,23 +29,23 @@ export class UserFollowRepository extends BaseRepository implements IUserFollowR
 
     async getFollowerIds(userId: number): Promise<number[]> {
         return this.executeRead(
-            'SELECT follower_id FROM user_follows WHERE following_id = ?',
+            'SELECT follower_id FROM user_follows WHERE following_id = $1',
             [userId],
-            (r: RowDataPacket) => r.follower_id as number
+            (r) => r.follower_id as number
         );
     }
 
     async getFollowingIds(userId: number): Promise<number[]> {
         return this.executeRead(
-            'SELECT following_id FROM user_follows WHERE follower_id = ?',
+            'SELECT following_id FROM user_follows WHERE follower_id = $1',
             [userId],
-            (r: RowDataPacket) => r.following_id as number
+            (r) => r.following_id as number
         );
     }
 
     async getFollowerCount(userId: number): Promise<number> {
         const result = await this.executeScalar<number>(
-            'SELECT COUNT(*) as count FROM user_follows WHERE following_id = ?',
+            'SELECT COUNT(*)::int as count FROM user_follows WHERE following_id = $1',
             [userId]
         );
         return result.ok ? result.data : 0;
@@ -54,7 +53,7 @@ export class UserFollowRepository extends BaseRepository implements IUserFollowR
 
     async getFollowingCount(userId: number): Promise<number> {
         const result = await this.executeScalar<number>(
-            'SELECT COUNT(*) as count FROM user_follows WHERE follower_id = ?',
+            'SELECT COUNT(*)::int as count FROM user_follows WHERE follower_id = $1',
             [userId]
         );
         return result.ok ? result.data : 0;

@@ -3,6 +3,7 @@ import { Heart, MessageSquare, Share2, User, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../hooks/auth/useAuthHook';
 import { postApi } from '../../api_services/post/PostAPIService';
+import { renderBBCode, truncateContent } from '../../utils/bbcode';
 
 interface PostCardProps {
     id: number;
@@ -38,35 +39,6 @@ function timeAgo(dateStr: string | null): string {
     return `${months}mo ago`;
 }
 
-function stripBBCodeTags(raw: string): string {
-    return raw.replace(/\[\/?\w+(?:=[^\]]*)?\]/gi, '');
-}
-
-function truncateContent(content: string, maxLength: number = 300): string {
-    const plain = stripBBCodeTags(content);
-    if (plain.length <= maxLength) return content;
-    return content.slice(0, maxLength).trimEnd() + '...';
-}
-
-function renderBBCode(raw: string): string {
-    let html = raw
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-
-    html = html.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
-    html = html.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
-    html = html.replace(/\[u\]([\s\S]*?)\[\/u\]/gi, '<u>$1</u>');
-    html = html.replace(/\[h\]([\s\S]*?)\[\/h\]/gi, '<h3 style="font-size:1.15em;font-weight:700;margin:0.5em 0 0.25em;">$1</h3>');
-    html = html.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, '<blockquote style="border-left:3px solid rgba(108,99,255,0.4);padding:0.5em 1em;margin:0.5em 0;color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.03);border-radius:4px;">$1</blockquote>');
-    html = html.replace(/\[code\]([\s\S]*?)\[\/code\]/gi, '<pre style="background:rgba(255,255,255,0.05);padding:0.75em 1em;border-radius:6px;font-family:monospace;font-size:0.85em;overflow-x:auto;">$1</pre>');
-    html = html.replace(/\[url=(.*?)\]([\s\S]*?)\[\/url\]/gi, '<a href="$1" style="color:#6c63ff;text-decoration:underline;" target="_blank" rel="noopener">$2</a>');
-    html = html.replace(/\[\*\](.*?)(?:\n|$)/gi, '<li style="margin-left:1.25em;">$1</li>');
-    html = html.replace(/\[img\](.*?)\[\/img\]/gi, '<img src="$1" style="max-width:100%;border-radius:8px;margin:0.5em 0;" />');
-    html = html.replace(/\n/g, '<br/>');
-
-    return html;
-}
 
 export default function PostCard(props: PostCardProps) {
     const { user } = useAuth();
@@ -74,8 +46,10 @@ export default function PostCard(props: PostCardProps) {
     const [likeCount, setLikeCount] = useState(props.likeCount);
     const [likeLoading, setLikeLoading] = useState(false);
 
+    const isOwnPost = user?.id === props.authorId;
+
     async function handleLike() {
-        if (!user || likeLoading) return;
+        if (!user || likeLoading || isOwnPost) return;
 
         setLikeLoading(true);
         try {
@@ -184,12 +158,12 @@ export default function PostCard(props: PostCardProps) {
                 {/* Like */}
                 <button
                     onClick={handleLike}
-                    disabled={!user || likeLoading}
+                    disabled={!user || likeLoading || isOwnPost}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
                     style={{
                         background: 'none',
                         border: 'none',
-                        cursor: user ? 'pointer' : 'default',
+                        cursor: user && !isOwnPost ? 'pointer' : 'default',
                         color: liked ? 'var(--color-pulse, #6366f1)' : 'rgba(255,255,255,0.45)',
                     }}
                 >

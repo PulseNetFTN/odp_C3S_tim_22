@@ -21,7 +21,7 @@ export class UserProfileDto {
         public bio: string | null = null,
         public profileImage: string | null = null,
         public role: string = 'user',
-        public createdAt: Date = new Date(),
+        public createdAt: Date | null = null,
         public stats: {
             postCount: number;
             commentCount: number;

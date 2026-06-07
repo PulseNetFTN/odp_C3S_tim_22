@@ -16,6 +16,10 @@ export const postApi: IPostApiService = {
         return apiGet<PostDto[]>(`posts/community/${communityId}?sort=${sort}`);
     },
 
+    getPostsByUser(userId: number): Promise<ApiResponse<PostDto[]>> {
+        return apiGet<PostDto[]>(`posts/user/${userId}`);
+    },    
+
     getById(id: number): Promise<ApiResponse<PostDto>> {
         return apiGet<PostDto>(`posts/${id}`);
     },

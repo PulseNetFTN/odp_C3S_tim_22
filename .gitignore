@@ -6,3 +6,9 @@ build/
 .DS_Store
 coverage/
 *.tsbuildinfo
+
+# Local dev notes
+FIXES.md
+
+# Claude Code settings
+.claude/

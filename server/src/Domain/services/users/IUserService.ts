@@ -15,7 +15,7 @@ import {
 export interface IUserService {
     getAllUsers(): Promise<ServiceResult<UserDto[]>>;
     getUserById(input: GetUserInput): Promise<ServiceResult<UserDto>>;
-    getUserProfile(userId: number, requesterId: number): Promise<ServiceResult<UserDto>>;
+    getUserProfile(userId: number, currentUserId?: number): Promise<ServiceResult<UserDto>>;
     updateProfile(input: UpdateProfileInput): Promise<ServiceResult<UserDto>>;
     updateRole(input: UpdateRoleInput): Promise<ServiceResult<boolean>>;
     searchUsers(input: SearchUsersInput): Promise<ServiceResult<UserDto[]>>;

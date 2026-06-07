@@ -7,6 +7,7 @@ export interface IPostRepository {
     getByIds(ids: number[]): Promise<Post[]>;
     getByCommunityId(communityId: number): Promise<Post[]>;
     getByAuthorId(authorId: number): Promise<Post[]>;
+    getPostCountByAuthor(authorId: number): Promise<number>;
     getCommunityPostIds(communityIds: number[]): Promise<number[]>;
     getFollowedAuthorPostIds(authorIds: number[]): Promise<number[]>;
     getPublicPosts(limit: number): Promise<Post[]>;

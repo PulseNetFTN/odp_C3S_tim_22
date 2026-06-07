@@ -15,7 +15,7 @@ export const CommentAPIService: ICommentsAPIService = {
     },
 
     createComment: (_token: string, data: CreateCommentDto): Promise<ApiResponse<CommentDto>> =>
-        apiPost<CommentDto>(`posts/${data.post_id}/comments?parentId=${data.parent_id}`, data),
+        apiPost<CommentDto>(`posts/${data.post_id}/comments`, data),
 
     updateComment: (_token: string, id: number, data: UpdateCommentDto): Promise<ApiResponse<CommentDto>> =>
         apiPut<CommentDto>(`comments/${id}`, data),
@@ -28,4 +28,7 @@ export const CommentAPIService: ICommentsAPIService = {
 
     unlikeComment: (_token: string, id: number): Promise<ApiResponse<boolean>> =>
         apiDelete<boolean>(`comments/${id}/like`),
+
+    getRepliesByComment: (commentId: number): Promise<ApiResponse<CommentDto[]>> =>
+        apiGet<CommentDto[]>(`comments/${commentId}/replies`),
 };

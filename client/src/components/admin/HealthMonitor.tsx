@@ -113,9 +113,9 @@ function HealthCard({ node, port }: HealthCardProps) {
 }
 
 const NODE_PORTS: Record<string, number> = {
-    master: 3306,
-    slave1: 3307,
-    slave2: 3308,
+    master: 5432,
+    slave1: 5433,
+    slave2: 5434,
 };
 
 export default function HealthMonitor({ onRefresh }: Props) {
@@ -174,7 +174,7 @@ export default function HealthMonitor({ onRefresh }: Props) {
             return;
         }
 
-        const slaveIndex = health.findIndex(
+        const slaveIndex = health.nodes.findIndex(
             (n, i) => i > 0 && n.status !== 'unreachable'
         );
 
@@ -183,7 +183,7 @@ export default function HealthMonitor({ onRefresh }: Props) {
             return;
         }
 
-        if (!confirm(`Trigger failover to ${health[slaveIndex].name}? This will promote it to master.`)) return;
+        if (!confirm(`Trigger failover to ${health.nodes[slaveIndex].name}? This will promote it to master.`)) return;
 
         setFailovering(true);
         setError(null);
@@ -262,14 +262,37 @@ export default function HealthMonitor({ onRefresh }: Props) {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-                {health.map(node => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+                {health.nodes.map(node => (
                     <HealthCard
                         key={node.name}
                         node={node}
-                        port={NODE_PORTS[node.name] ?? 3306}
+                        port={NODE_PORTS[node.name] ?? 5432}
                     />
                 ))}
+            </div>
+
+            <div className="rounded-xl p-4" style={{
+                background: 'linear-gradient(135deg, #0a0a14 0%, #08080e 100%)',
+                border: '1px solid rgba(108, 99, 255, 0.2)',
+            }}>
+                <h3 className="text-sm font-medium text-white mb-3">Active Connections</h3>
+                <div className="flex gap-6">
+                    <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${health.connections.read === 'ok' ? 'bg-green-500' : 'bg-red-500'}`} />
+                        <span className="text-xs text-muted-ghost">Read: </span>
+                        <span className={`text-xs ${health.connections.read === 'ok' ? 'text-green-400' : 'text-red-400'}`}>
+                            {health.connections.read.toUpperCase()}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${health.connections.write === 'ok' ? 'bg-green-500' : 'bg-red-500'}`} />
+                        <span className="text-xs text-muted-ghost">Write: </span>
+                        <span className={`text-xs ${health.connections.write === 'ok' ? 'text-green-400' : 'text-red-400'}`}>
+                            {health.connections.write.toUpperCase()}
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
     );

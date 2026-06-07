@@ -36,12 +36,13 @@ export async function apiGet<T>(path: string): Promise<ApiResponse<T>> {
     }
 }
 
-export async function apiPost<T>(path: string, body?: unknown): Promise<ApiResponse<T>> {
+export async function apiPost<T>(path: string, body?: unknown, credentials?: RequestCredentials): Promise<ApiResponse<T>> {
     try {
         const res = await fetch(`${API.BASE_URL}${path}`, {
             method: 'POST',
             headers: buildHeaders(),
             body: body ? JSON.stringify(body) : undefined,
+            credentials,
         });
         return handleResponse<T>(res);
     } catch {

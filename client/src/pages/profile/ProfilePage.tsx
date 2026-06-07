@@ -35,11 +35,12 @@ export default function ProfilePage() {
     const [showFollowersList, setShowFollowersList] = useState(false);
     const [showFollowingList, setShowFollowingList] = useState(false);
 
-    // Postovi i komentari
+    //  Novo: postovi i komentari 
     const [activeTab, setActiveTab] = useState<'posts' | 'comments' | 'tags'>('posts');
     const [userPosts, setUserPosts] = useState<PostDto[]>([]);
     const [userComments, setUserComments] = useState<CommentDto[]>([]);
     const [contentLoading, setContentLoading] = useState(false);
+    // 
 
     const isOwnProfile = !userId || (user && user.id === parseInt(userId));
     const targetUserId = userId ? parseInt(userId) : user?.id;
@@ -74,17 +75,10 @@ export default function ProfilePage() {
 
         setTimeout(resize, 100);
         resize();
-
         window.addEventListener('resize', resize);
 
-        const onMouseMove = (e: MouseEvent) => {
-            mouseRef.current = { x: e.clientX, y: e.clientY };
-        };
-
-        const onMouseLeave = () => {
-            mouseRef.current = null;
-        };
-
+        const onMouseMove = (e: MouseEvent) => { mouseRef.current = { x: e.clientX, y: e.clientY }; };
+        const onMouseLeave = () => { mouseRef.current = null; };
         window.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseleave', onMouseLeave);
 
@@ -99,12 +93,10 @@ export default function ProfilePage() {
         if (!particleDims.W || !particleDims.H) return;
 
         let animFrame: number;
-
         function loop() {
             drawParticles();
             animFrame = requestAnimationFrame(loop);
         }
-
         animFrame = requestAnimationFrame(loop);
         return () => cancelAnimationFrame(animFrame);
     }, [particleDims, drawParticles]);
@@ -228,6 +220,11 @@ export default function ProfilePage() {
             return;
         }
 
+        if (editForm.password && editForm.password !== editForm.confirmPassword) {
+            alert('Passwords do not match');
+            return;
+        }
+
         setSaving(true);
         try {
             const res = await UserProfileAPIService.updateProfile(token, {
@@ -282,7 +279,7 @@ export default function ProfilePage() {
         return (
             <div ref={pageRef} className="relative overflow-hidden min-h-screen bg-surface-base">
                 <canvas ref={pCanvasRef} className="fixed top-0 left-0 w-full pointer-events-none" style={{ zIndex: 0, height: '100vh' }} />
-                <div className="relative min-h-screen">
+                <div className="relative min-h-screen" style={{ zIndex: 2 }}>
                     <div className="relative z-10 max-w-4xl mx-auto px-4 py-8">
                         <div className="h-48 bg-surface-hover rounded-xl animate-pulse mb-6" />
                         <div className="h-64 bg-surface-hover rounded-xl animate-pulse" />
@@ -296,7 +293,7 @@ export default function ProfilePage() {
         return (
             <div ref={pageRef} className="relative overflow-hidden min-h-screen bg-surface-base">
                 <canvas ref={pCanvasRef} className="fixed top-0 left-0 w-full pointer-events-none" style={{ zIndex: 0, height: '100vh' }} />
-                <div className="relative min-h-screen">
+                <div className="relative min-h-screen" style={{ zIndex: 2 }}>
                     <div className="relative z-10 max-w-4xl mx-auto px-4 py-8">
                         <div className="text-center py-12 rounded-xl" style={{
                             background: 'linear-gradient(135deg, #0a0a14 0%, #08080e 100%)',
@@ -366,155 +363,207 @@ export default function ProfilePage() {
                     />
 
                     {/* About Section */}
-                    <div className="mt-6 rounded-xl p-6" style={{
+                    <div className="mt-6 rounded-xl overflow-hidden" style={{
                         background: 'linear-gradient(135deg, #0a0a14 0%, #08080e 100%)',
-                        border: '1px solid rgba(108, 99, 255, 0.2)',
+                        border: isEditing ? '1px solid rgba(108, 99, 255, 0.4)' : '1px solid rgba(108, 99, 255, 0.2)',
+                        transition: 'border-color 0.2s',
                     }}>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="font-syne text-lg font-bold text-white">About</h2>
+                        {/* Section header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+                            <div className="flex items-center gap-3">
+                                <h2 className="font-syne text-lg font-bold text-white">
+                                    {isEditing ? 'Edit Profile' : 'About'}
+                                </h2>
+                                {!isEditing && (
+                                    <span
+                                        className="text-xs px-2.5 py-0.5 rounded-full capitalize font-medium"
+                                        style={{
+                                            background: profile.role === 'admin' ? 'rgba(239,68,68,0.12)' : 'rgba(108,99,255,0.12)',
+                                            color: profile.role === 'admin' ? '#f87171' : '#a5b4fc',
+                                            border: `1px solid ${profile.role === 'admin' ? 'rgba(239,68,68,0.2)' : 'rgba(108,99,255,0.2)'}`,
+                                        }}
+                                    >
+                                        {profile.role}
+                                    </span>
+                                )}
+                            </div>
                             {isEditing && (
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={handleCancelEdit}
-                                        disabled={saving}
-                                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50"
-                                    >
-                                        <X size={14} />
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleSaveEdit}
-                                        disabled={saving}
-                                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-pulse text-white rounded-lg hover:bg-pulse-80 transition-colors disabled:opacity-50"
-                                    >
-                                        <Save size={14} />
-                                        {saving ? 'Saving...' : 'Save'}
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={handleCancelEdit}
+                                    disabled={saving}
+                                    className="p-1.5 rounded-md text-muted-ghost hover:text-white hover:bg-white/5 transition-colors disabled:opacity-40"
+                                    title="Cancel"
+                                >
+                                    <X size={16} />
+                                </button>
                             )}
                         </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Role</h3>
-                                <p className="text-white capitalize">{profile.role}</p>
-                            </div>
+                        {isEditing && isOwnProfile ? (
+                            /* ── EDIT FORM ── */
+                            <div className="p-6 space-y-5">
+                                {/* First + Last name */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs text-muted-ghost uppercase tracking-wider mb-1.5">First Name</label>
+                                        <input
+                                            type="text"
+                                            name="firstName"
+                                            value={editForm.firstName}
+                                            onChange={handleInputChange}
+                                            placeholder="First name"
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-pulse/60 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-muted-ghost uppercase tracking-wider mb-1.5">Last Name</label>
+                                        <input
+                                            type="text"
+                                            name="lastName"
+                                            value={editForm.lastName}
+                                            onChange={handleInputChange}
+                                            placeholder="Last name"
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-pulse/60 transition-colors"
+                                        />
+                                    </div>
+                                </div>
 
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Username</h3>
-                                {isEditing && isOwnProfile ? (
-                                    <input
-                                        type="text"
-                                        name="username"
-                                        value={editForm.username}
-                                        onChange={handleInputChange}
-                                        placeholder="Username"
-                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-                                    />
-                                ) : (
-                                    <p className="text-white">@{profile.username}</p>
-                                )}
-                            </div>
+                                {/* Username */}
+                                <div>
+                                    <label className="block text-xs text-muted-ghost uppercase tracking-wider mb-1.5">Username</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-ghost text-sm select-none">@</span>
+                                        <input
+                                            type="text"
+                                            name="username"
+                                            value={editForm.username}
+                                            onChange={handleInputChange}
+                                            placeholder="username"
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg pl-7 pr-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-pulse/60 transition-colors"
+                                        />
+                                    </div>
+                                </div>
 
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">First Name</h3>
-                                {isEditing && isOwnProfile ? (
-                                    <input
-                                        type="text"
-                                        name="firstName"
-                                        value={editForm.firstName}
-                                        onChange={handleInputChange}
-                                        placeholder="First name"
-                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-                                    />
-                                ) : (
-                                    <p className="text-white">{profile.firstName || 'Not set'}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Last Name</h3>
-                                {isEditing && isOwnProfile ? (
-                                    <input
-                                        type="text"
-                                        name="lastName"
-                                        value={editForm.lastName}
-                                        onChange={handleInputChange}
-                                        placeholder="Last name"
-                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-                                    />
-                                ) : (
-                                    <p className="text-white">{profile.lastName || 'Not set'}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Email</h3>
-                                {isEditing && isOwnProfile ? (
+                                {/* Email */}
+                                <div>
+                                    <label className="block text-xs text-muted-ghost uppercase tracking-wider mb-1.5">Email</label>
                                     <input
                                         type="email"
                                         name="email"
                                         value={editForm.email}
                                         onChange={handleInputChange}
-                                        placeholder="Email address"
-                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+                                        placeholder="email@example.com"
+                                        className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-pulse/60 transition-colors"
                                     />
-                                ) : (
-                                    <p className="text-white">{isOwnProfile ? profile.email : '🔒 Hidden'}</p>
-                                )}
-                            </div>
+                                </div>
 
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Bio</h3>
-                                {isEditing && isOwnProfile ? (
+                                {/* Bio */}
+                                <div>
+                                    <label className="block text-xs text-muted-ghost uppercase tracking-wider mb-1.5">Bio</label>
                                     <textarea
                                         name="bio"
                                         value={editForm.bio || ''}
                                         onChange={handleInputChange}
                                         placeholder="Write something about yourself..."
-                                        rows={4}
-                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse resize-none"
+                                        rows={3}
+                                        className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-pulse/60 transition-colors resize-none"
                                     />
-                                ) : (
-                                    <p className="text-muted leading-relaxed">{profile.bio || 'No bio yet'}</p>
-                                )}
-                            </div>
+                                </div>
 
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Password</h3>
-                                {isEditing && isOwnProfile ? (
-                                    <input
-                                        type="password"
-                                        name="password"
-                                        value={editForm.password}
-                                        onChange={handleInputChange}
-                                        placeholder="Leave blank to keep current"
-                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-                                    />
-                                ) : (
-                                    <p className="text-white">••••••••</p>
-                                )}
-                            </div>
+                                {/* Password divider */}
+                                <div>
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                                        <span className="text-xs text-muted-ghost uppercase tracking-widest">Change Password</span>
+                                        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs text-muted-ghost uppercase tracking-wider mb-1.5">New Password</label>
+                                            <input
+                                                type="password"
+                                                name="password"
+                                                value={editForm.password}
+                                                onChange={handleInputChange}
+                                                placeholder="Leave blank to keep"
+                                                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-pulse/60 transition-colors"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-muted-ghost uppercase tracking-wider mb-1.5">Confirm Password</label>
+                                            <input
+                                                type="password"
+                                                name="confirmPassword"
+                                                value={editForm.confirmPassword}
+                                                onChange={handleInputChange}
+                                                placeholder="Repeat new password"
+                                                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-pulse/60 transition-colors"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
 
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Confirm New Password</h3>
-                                {isEditing && isOwnProfile ? (
-                                    <input
-                                        type="password"
-                                        name="confirmPassword"
-                                        value={editForm.confirmPassword}
-                                        onChange={handleInputChange}
-                                        placeholder="Repeat new password"
-                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-                                    />
-                                ) : (
-                                    <p className="text-white">••••••••</p>
+                                {/* Action buttons */}
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        onClick={handleCancelEdit}
+                                        disabled={saving}
+                                        className="flex-1 py-2.5 text-sm text-muted hover:text-white rounded-lg transition-colors disabled:opacity-40"
+                                        style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSaveEdit}
+                                        disabled={saving}
+                                        className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-white rounded-lg transition-all disabled:opacity-40"
+                                        style={{ background: 'rgba(108,99,255,0.9)', boxShadow: '0 0 20px rgba(108,99,255,0.25)' }}
+                                    >
+                                        <Save size={14} />
+                                        {saving ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            /* ── VIEW MODE ── */
+                            <div className="p-6">
+                                <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+                                    <div>
+                                        <p className="text-xs text-muted-ghost mb-1">Username</p>
+                                        <p className="text-white text-sm">@{profile.username}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-ghost mb-1">Email</p>
+                                        <p className="text-white text-sm">{isOwnProfile ? profile.email : <span className="text-muted-ghost">Hidden</span>}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-ghost mb-1">First Name</p>
+                                        <p className="text-white text-sm">{profile.firstName || <span className="text-muted-ghost">—</span>}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-ghost mb-1">Last Name</p>
+                                        <p className="text-white text-sm">{profile.lastName || <span className="text-muted-ghost">—</span>}</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <p className="text-xs text-muted-ghost mb-2">Bio</p>
+                                    <p className="text-muted text-sm leading-relaxed">{profile.bio || 'No bio yet'}</p>
+                                </div>
+
+                                {isOwnProfile && (
+                                    <div className="mt-5 pt-5 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div>
+                                            <p className="text-xs text-muted-ghost mb-1">Password</p>
+                                            <p className="text-white text-sm tracking-widest">••••••••</p>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
-                        </div>
+                        )}
                     </div>
 
-                    {/* Postovi i Komentari tabovi */}
+                    {/*  Novo: Postovi i Komentari tabovi  */}
                     <div className="mt-6 rounded-xl overflow-hidden" style={{
                         background: 'linear-gradient(135deg, #0a0a14 0%, #08080e 100%)',
                         border: '1px solid rgba(108, 99, 255, 0.2)',
@@ -616,7 +665,7 @@ export default function ProfilePage() {
                                                         {post.communityName && (
                                                             <span className="text-pulse/70">r/{post.communityName} · </span>
                                                         )}
-                                                        {new Date(post.createdAt ?? new Date()).toLocaleDateString()}
+                                                        {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}
                                                     </span>
                                                     <span className="text-xs text-muted-ghost">
                                                         ♥ {post.likeCount}

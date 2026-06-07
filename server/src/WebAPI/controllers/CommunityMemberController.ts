@@ -2,6 +2,7 @@ import { Request, Response, Router } from 'express';
 import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { sendServiceResult } from '../helpers/responseHelper';
 import { ICommunityMemberService } from '../../Domain/services/communities/ICommunityMemberService';
+import { UserRole } from '../../Domain/enums/UserRole';
 
 export class CommunityMemberController {
     private router: Router;
@@ -48,7 +49,7 @@ export class CommunityMemberController {
                 return;
             }
             const result = await this.communityMemberService.updateMemberRole({
-                communityId, targetUserId, requesterId: req.user!.id, role,
+                communityId, targetUserId, requesterId: req.user!.id, requesterRole: req.user!.role as UserRole, role,
             });
             sendServiceResult(res, result);
         } catch {
@@ -70,7 +71,7 @@ export class CommunityMemberController {
                 return;
             }
             const result = await this.communityMemberService.updateMemberStatus({
-                communityId, targetUserId, requesterId: req.user!.id, status,
+                communityId, targetUserId, requesterId: req.user!.id, requesterRole: req.user!.role as UserRole, status,
             });
             sendServiceResult(res, result);
         } catch {
@@ -87,7 +88,7 @@ export class CommunityMemberController {
                 return;
             }
             const result = await this.communityMemberService.removeMember({
-                communityId, targetUserId, requesterId: req.user!.id,
+                communityId, targetUserId, requesterId: req.user!.id, requesterRole: req.user!.role as UserRole,
             });
             sendServiceResult(res, result);
         } catch {

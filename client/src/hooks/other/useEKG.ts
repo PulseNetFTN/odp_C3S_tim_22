@@ -1,12 +1,14 @@
 import { useCallback, useRef } from 'react';
 
-const SCROLL_SPEED = 1.4;
-const GLOW_HALF_WIDTH = 140;
-const BEATS_PER_WIDTH = 6;
 
-function ekgY(x: number, offset: number, amplitude: number, centerY: number, W: number) {
+
+const SCROLL_SPEED = 1.4;
+
+
+
+function ekgY(x: number, offset: number, amplitude: number, centerY: number, W: number, beatsPerWidth: number) {
     const pos = ((x + offset) % W + W) % W;
-    const beat = (pos / W * BEATS_PER_WIDTH) % 1;
+    const beat = (pos / W * beatsPerWidth) % 1;
 
     let y = 0;
     if (beat < 0.04) y = -amplitude * 0.15 * Math.sin(beat / 0.04 * Math.PI);
@@ -33,16 +35,16 @@ export function useEKG(
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        ctx.clearRect(0, 0, W, H);
+        const { beatsPerWidth, glowHalfWidth, amplitude: amp, step } = getResponsiveParams(W);
 
+        ctx.clearRect(0, 0, W, H);
         const cy = H * 0.76;
-        const amp = 28;
         const lineOffset = offsetRef.current * 0.7;
 
         // Base trace
         ctx.beginPath();
-        for (let x = 0; x <= W; x += 2) {
-            const y = ekgY(x, lineOffset, amp, cy, W);
+        for (let x = 0; x <= W; x += step) {
+            const y = ekgY(x, lineOffset, amp, cy, W, beatsPerWidth);
             if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
         ctx.strokeStyle = 'rgba(108,99,255,0.3)';
@@ -51,20 +53,20 @@ export function useEKG(
 
         // Glow pass
         ctx.beginPath();
-        for (let x = 0; x <= W; x += 2) {
-            const y = ekgY(x, lineOffset, amp, cy, W);
+        for (let x = 0; x <= W; x += step) {
+            const y = ekgY(x, lineOffset, amp, cy, W, beatsPerWidth);
             if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
         ctx.strokeStyle = 'rgba(108,99,255,0.12)';
         ctx.lineWidth = 6;
         ctx.stroke();
 
-        // Travelling highlight
+        // Travelling highlight  use responsive glow width
         const gx = (lineOffset * 1.3) % W;
-        const xStart = Math.max(0, gx - GLOW_HALF_WIDTH);
-        const xEnd = Math.min(W, gx + GLOW_HALF_WIDTH);
+        const xStart = Math.max(0, gx - glowHalfWidth);
+        const xEnd = Math.min(W, gx + glowHalfWidth);
 
-        const grad = ctx.createLinearGradient(gx - GLOW_HALF_WIDTH, 0, gx + GLOW_HALF_WIDTH, 0);
+        const grad = ctx.createLinearGradient(gx - glowHalfWidth, 0, gx + glowHalfWidth, 0);
         grad.addColorStop(0, 'rgba(108,99,255,0)');
         grad.addColorStop(0.45, 'rgba(160,154,255,0.25)');
         grad.addColorStop(0.5, 'rgba(200,196,255,0.7)');
@@ -73,7 +75,7 @@ export function useEKG(
 
         ctx.beginPath();
         for (let x = xStart; x <= xEnd; x += 2) {
-            const y = ekgY(x, lineOffset, amp, cy, W);
+            const y = ekgY(x, lineOffset, amp, cy, W, beatsPerWidth);
             if (x === xStart) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
         ctx.strokeStyle = grad;
@@ -84,4 +86,15 @@ export function useEKG(
     }, [canvasRef, W, H]);
 
     return { draw };
+}
+
+
+function getResponsiveParams(W: number) {
+    const t = Math.min(1, Math.max(0, (W - 320) / (1200 - 320))); // 0 at 320px, 1 at 1200px
+    return {
+        beatsPerWidth: Math.round(2 + t * 4),       // 2 → 6
+        glowHalfWidth: Math.round(50 + t * 90),     // 50 → 140
+        amplitude: Math.round(14 + t * 14),          // 14 → 28
+        step: W < 768 ? 1 : 2,
+    };
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { CommentDto } from '../../models/comments/CommentDTO';
 import CommentItem from './CommentItem';
-import { apiGet } from '../../helpers/api';
+import { CommentAPIService } from '../../api_services/comments/CommentAPIService';
 
 interface CollapsibleRepliesProps {
     parentComment: CommentDto;
@@ -27,7 +27,7 @@ export default function CollapsibleReplies({
     onLike,
 }: CollapsibleRepliesProps) {
     const [isExpanded, setIsExpanded] = useState(false);
-    const [replies, setReplies] = useState<CommentDto[]>([]);
+    const [replies, setReplies] = useState<CommentDto[]>(parentComment.replies ?? []);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -41,19 +41,25 @@ export default function CollapsibleReplies({
                 isLiked: !isCurrentlyLiked,
             };
         }));
-        onLike(id, isCurrentlyLiked); // proslijedi gore za API poziv
+        onLike(id, isCurrentlyLiked);
     };
 
-    // Fetch replies when expanded
+    // Keep local replies in sync when parent refetches (e.g. after adding a reply)
+    useEffect(() => {
+        if (parentComment.replies) {
+            setReplies(parentComment.replies);
+        }
+    }, [parentComment.replies]);
+
+    // Fetch from API when expanded if no replies are loaded yet (fallback)
     useEffect(() => {
         if (!isExpanded || replies.length > 0) return;
 
         const fetchReplies = async () => {
             setLoading(true);
             setError(null);
-
             try {
-                const res = await apiGet<CommentDto[]>(`comments/${parentComment.id}/replies`);
+                const res = await CommentAPIService.getRepliesByComment(parentComment.id);
                 if (res.success && res.data) {
                     setReplies(Array.isArray(res.data) ? res.data : []);
                 } else {
@@ -67,7 +73,7 @@ export default function CollapsibleReplies({
         };
 
         fetchReplies();
-    }, [isExpanded, parentComment, replies.length]);
+    }, [isExpanded, replies.length, parentComment.id]);
 
     if (replyCount === 0) return null;
 

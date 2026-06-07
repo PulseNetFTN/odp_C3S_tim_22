@@ -52,18 +52,15 @@ export default function CommentItem({
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
-    const authorId      = comment.authorId   ?? comment.authorId   ?? 0;
-    const createdAt     = comment.createdAt  ?? comment.createdAt  ?? '';
-    const updatedAt     = comment.updatedAt  ?? comment.updatedAt;
-    const isDeleted     = comment.isDeleted === 1 || !!comment.isDeleted;
-    const likesCount    = comment.likesCount ?? comment.likesCount ?? 0;
-    const isLiked       = comment.isLiked    ?? comment.isLiked    ?? false;
+    const authorId   = comment.authorId ?? 0;
+    const createdAt  = comment.createdAt ?? '';
+    const updatedAt  = comment.updatedAt;
+    const isDeleted  = !!comment.isDeleted;
+    const likesCount = comment.likesCount ?? 0;
+    const isLiked    = comment.isLiked ?? false;
     const totalReplies  = replyCount || (comment.replies?.length ?? 0);
 
-    const authorUsername =
-        comment.username ??
-        comment.authorUsername ??
-        `user_${authorId}`;
+    const authorUsername = comment.authorUsername ?? `user_${authorId}`;
 
     const isOwner = isAuthenticated && currentUserId === authorId;
 

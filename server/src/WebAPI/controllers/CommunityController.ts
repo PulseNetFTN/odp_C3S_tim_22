@@ -126,8 +126,13 @@ export class CommunityController {
                 return;
             }
             const { name, description, rules, avatar, type } = req.body;
+            const validation = validateCreateCommunity(name, description, type);
+            if (!validation.valid) {
+                res.status(400).json({ success: false, message: validation.message });
+                return;
+            }
             const result = await this.communityService.updateCommunity({
-                communityId: id, requesterId: req.user!.id, name, description, rules, avatar, type,
+                communityId: id, requesterId: req.user!.id, requesterRole: req.user!.role, name, description, rules, avatar, type,
             });
             sendServiceResult(res, result);
         } catch {
@@ -143,7 +148,7 @@ export class CommunityController {
                 return;
             }
             const result = await this.communityService.deleteCommunity({
-                communityId: id, requesterId: req.user!.id,
+                communityId: id, requesterId: req.user!.id, requesterRole: req.user!.role,
             });
             sendServiceResult(res, result);
         } catch {
@@ -175,7 +180,7 @@ export class CommunityController {
                 return;
             }
             const result = await this.communityService.leaveCommunity({
-                userId: req.user!.id, communityId,
+                userId: req.user!.id, communityId, requesterRole: req.user!.role,
             });
             sendServiceResult(res, result);
         } catch {

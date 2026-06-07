@@ -1,59 +1,95 @@
+
 const roles = [
     {
         label: 'Guest',
-        color: 'bg-pulse',
-        desc: 'View public communities and posts. No ability to create content or interact.'
+        color: 'rgba(108,99,255,0.75)',
+        scope: 'Read-only',
+        desc: 'View public communities and posts. No ability to create content or interact.',
     },
     {
         label: 'User',
-        color: 'bg-role-user',
-        desc: 'Create communities, posts, and comments. Follow users. Manage personal profile.'
+        color: 'rgba(34,197,94,0.75)',
+        scope: 'Create & connect',
+        desc: 'Create communities, posts, and comments. Follow users. Manage personal profile.',
     },
     {
         label: 'Administrator',
-        color: 'bg-role-admin',
-        desc: 'Global access. Manage users, tags, audit logs, and database health status.'
+        color: 'rgba(239,68,68,0.65)',
+        scope: 'Full access',
+        desc: 'Global access. Manage users, tags, audit logs, and database health status.',
     },
 ];
 
-export default function LandingRoles() {
-    return (
-        <section id="roles" className="grid grid-cols-1 md:grid-cols-2 border-t border-border-subtle">
-            <div className="px-6 md:px-16 py-16 md:py-24 border-b md:border-b-0 md:border-r border-border-subtle">
-                <p className="text-xs tracking-widest uppercase mb-6 text-pulse-60">
-                    Access control
-                </p>
-                <h2 className="font-syne text-subhead leading-heading tracking-heading text-white font-black mb-6">
-                    Three levels of access,<br />one platform
-                </h2>
-                <p className="text-sm font-light leading-loose max-w-sm text-muted-soft">
-                    A role system from guest to administrator ensures every user has exactly the level of access they need  no more, no less.
-                </p>
-            </div>
+import { useScrollReveal } from '../../hooks/other/useScrollReveal';
 
-            <div className="px-6 md:px-16 py-16 md:py-24 flex flex-col justify-center gap-6">
-                {roles.map((r, i) => (
-                    <div
-                        key={r.label}
-                        className={`flex gap-6 items-start pb-6 ${
-                            i < roles.length - 1
-                                ? 'border-b border-border-subtle'
-                                : ''
-                        }`}
+export default function LandingRoles() {
+    const ref = useScrollReveal<HTMLElement>();
+    return (
+        <section ref={ref} id="roles" className="px-6 md:px-16 py-14 md:py-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
+                {/* Left heading */}
+                <div>
+                    <p
+                        className="text-[10px] tracking-[0.15em] uppercase mb-4 font-normal"
+                        style={{ color: 'rgba(108,99,255,0.55)' }}
                     >
+                        Access control
+                    </p>
+                    <h2 className="font-syne text-white font-black leading-[1.15] tracking-tight mb-3.5"
+                        style={{ fontSize: 'clamp(2rem, 5vw, 3.75rem)' }}>
+                        Three levels of access,<br />one platform
+                    </h2>
+                    <p
+                        className="text-[13px] font-light leading-[1.85] max-w-sm"
+                        style={{ color: 'rgba(255,255,255,0.33)' }}
+                    >
+                        A role system from guest to administrator. Every user gets
+                        exactly the access they need no more, no less.
+                    </p>
+                </div>
+
+                {/* Right role cards */}
+                <div className="flex flex-col gap-2.5">
+                    {roles.map((r) => (
                         <div
-                            className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${r.color}`}
-                        />
-                        <div>
-                            <h4 className="font-syne text-sm font-bold tracking-wide mb-1 text-muted-strong">
-                                {r.label}
-                            </h4>
-                            <p className="text-xs font-light leading-relaxed text-muted-ghost">
-                                {r.desc}
-                            </p>
+                            key={r.label}
+                            className="flex gap-3.5 items-start rounded-[14px] px-6 py-5 transition-all duration-300"
+                            style={{
+                                background: 'rgba(255,255,255,0.02)',
+                                border: '1px solid rgba(255,255,255,0.03)',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.03)'; }}
+                        >
+                            <div
+                                className="w-2 h-2 rounded-full mt-[5px] shrink-0"
+                                style={{ background: r.color }}
+                            />
+                            <div>
+                                <div className="flex items-baseline gap-2 mb-1">
+                                    <span className="font-syne font-bold text-[13px] text-white">
+                                        {r.label}
+                                    </span>
+                                    <span
+                                        className="text-[9px] tracking-[0.08em] uppercase px-2 py-0.5 rounded-full font-normal"
+                                        style={{
+                                            color: 'rgba(108,99,255,0.65)',
+                                            background: 'rgba(108,99,255,0.08)',
+                                        }}
+                                    >
+                                        {r.scope}
+                                    </span>
+                                </div>
+                                <p
+                                    className="text-[11px] font-light leading-[1.65]"
+                                    style={{ color: 'rgba(255,255,255,0.24)' }}
+                                >
+                                    {r.desc}
+                                </p>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         </section>
     );

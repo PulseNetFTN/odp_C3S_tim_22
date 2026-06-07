@@ -24,6 +24,8 @@ import {
     GetCommentsByUserInput,
 } from '../../Domain/types/inputs/CommentInputs';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
+import { UserRole } from '../../Domain/enums/UserRole';
+import { CommunityRole } from '../../Domain/enums/CommunityRole';
 
 export class CommentService implements ICommentService {
     public constructor(
@@ -56,7 +58,7 @@ export class CommentService implements ICommentService {
         }
 
         const commentResult = await this.commentReadWriteRepository.create(
-            new Comment(0, input.postId, input.authorId, input.parentId ?? null, 0, input.content, false, false, new Date(), new Date()));
+            new Comment(0, input.postId, input.authorId, input.parentId, 0, input.content, false, false, new Date(), new Date()));
 
         if (!commentResult.ok) {
             return { success: false, message: 'Failed to create comment', errorCode: ErrorCode.INTERNAL_ERROR };
@@ -73,9 +75,7 @@ export class CommentService implements ICommentService {
         }
 
         const comments = await this.commentReadWriteRepository.getByPost(input.postId);
-        const dtos = await Promise.all(
-            comments.map(c => this.buildCommentDto(c, input.currentUserId ?? undefined))
-        );
+        const dtos = await this.buildCommentDtos(comments, input.currentUserId ?? undefined);
 
         const rootComments = dtos.filter(c => c.parentId === null);
         const replies = dtos.filter(c => c.parentId !== null);
@@ -89,9 +89,7 @@ export class CommentService implements ICommentService {
     async getCommentsByUser(input: GetCommentsByUserInput): Promise<ServiceResult<CommentDto[]>> {
         const comments = await this.commentReadWriteRepository.getByAuthor(input.userId);
         const visibleComments = comments.filter(c => !c.isDeleted);
-        const dtos = await Promise.all(
-            visibleComments.map(c => this.buildCommentDto(c, input.requesterId ?? undefined))
-        );
+        const dtos = await this.buildCommentDtos(visibleComments, input.requesterId ?? undefined);
         return { success: true, data: dtos };
     }
 
@@ -126,17 +124,19 @@ export class CommentService implements ICommentService {
         }
         const comment = commentResult.data;
 
-        const postResult = await this.postRepository.getById(comment.postId);
-        if (!postResult.ok) {
-            return { success: false, message: 'Associated post not found', errorCode: ErrorCode.NOT_FOUND };
-        }
-
-        const memberResult = await this.communityMemberRepository.getMember(input.requesterId, postResult.data.communityId);
+        const isAdmin = input.requesterRole === UserRole.Admin;
         const isAuthor = comment.authorId === input.requesterId;
-        const isModerator = memberResult.ok && memberResult.data.role === 'moderator';
 
-        if (!isAuthor && !isModerator) {
-            return { success: false, message: 'Not authorized to delete this comment', errorCode: ErrorCode.FORBIDDEN };
+        if (!isAdmin && !isAuthor) {
+            const postResult = await this.postRepository.getById(comment.postId);
+            if (!postResult.ok) {
+                return { success: false, message: 'Associated post not found', errorCode: ErrorCode.NOT_FOUND };
+            }
+            const memberResult = await this.communityMemberRepository.getMember(input.requesterId, postResult.data.communityId);
+            const isModerator = memberResult.ok && memberResult.data.role === CommunityRole.Moderator;
+            if (!isModerator) {
+                return { success: false, message: 'Not authorized to delete this comment', errorCode: ErrorCode.FORBIDDEN };
+            }
         }
 
         const result = await this.commentReadWriteRepository.softDelete(input.commentId);
@@ -153,9 +153,17 @@ export class CommentService implements ICommentService {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const memberResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (!memberResult.ok || memberResult.data.role !== 'moderator') {
-            return { success: false, message: 'Only moderators can flag comments', errorCode: ErrorCode.FORBIDDEN };
+        const postResult = await this.postRepository.getById(commentResult.data.postId);
+        if (!postResult.ok) {
+            return { success: false, message: 'Associated post not found', errorCode: ErrorCode.NOT_FOUND };
+        }
+
+        const isAdmin = input.requesterRole === UserRole.Admin;
+        if (!isAdmin) {
+            const memberResult = await this.communityMemberRepository.getMember(input.requesterId, postResult.data.communityId);
+            if (!memberResult.ok || memberResult.data.role !== CommunityRole.Moderator) {
+                return { success: false, message: 'Only moderators can flag comments', errorCode: ErrorCode.FORBIDDEN };
+            }
         }
 
         const result = await this.commentReadWriteRepository.setFlag(input.commentId, true);
@@ -175,6 +183,10 @@ export class CommentService implements ICommentService {
         const alreadyLiked = await this.commentLikeRepository.hasLiked(input.userId, input.commentId);
         if (alreadyLiked) {
             return { success: false, message: 'You have already liked this comment', errorCode: ErrorCode.ALREADY_EXISTS };
+        }
+
+        if (commentResult.data.authorId === input.userId) {         
+            return { success: false, message: 'You cannot like your own comment', errorCode: ErrorCode.VALIDATION_ERROR };
         }
 
         const result = await this.commentLikeRepository.like(input.commentId, input.userId);
@@ -211,7 +223,7 @@ export class CommentService implements ICommentService {
         }
 
         const comments = await this.commentQueryRepository.findRootCommentsByPost(input.postId);
-        const dtos = await Promise.all(comments.map(c => this.buildCommentDto(c, input.currentUserId)));
+        const dtos = await this.buildCommentDtos(comments, input.currentUserId);
         return { success: true, data: dtos };
     }
 
@@ -222,9 +234,7 @@ export class CommentService implements ICommentService {
         }
 
         const replies = await this.commentQueryRepository.findRepliesByCommentId(input.commentId);
-        const dtos = await Promise.all(
-            replies.map(r => this.buildCommentDto(r, input.currentUserId ?? undefined))
-        );
+        const dtos = await this.buildCommentDtos(replies, input.currentUserId ?? undefined);
         return { success: true, data: dtos };
     }
 
@@ -239,7 +249,7 @@ export class CommentService implements ICommentService {
         }
 
         const replies = await this.commentQueryRepository.findRepliesPaginated(input.commentId, input.limit, input.offset);
-        const dtos = await Promise.all(replies.map(r => this.buildCommentDto(r, input.currentUserId)));
+        const dtos = await this.buildCommentDtos(replies, input.currentUserId ?? undefined);
         return { success: true, data: dtos };
     }
 
@@ -251,6 +261,38 @@ export class CommentService implements ICommentService {
 
         const count = await this.commentQueryRepository.getReplyCount(input.commentId);
         return { success: true, data: count };
+    }
+
+    private async buildCommentDtos(comments: Comment[], currentUserId?: number | null): Promise<CommentDto[]> {
+        if (comments.length === 0) return [];
+        const commentIds = comments.map(c => c.id);
+        const authorIds = [...new Set(comments.map(c => c.authorId))];
+
+        const [users, likeCountMap, likedSet] = await Promise.all([
+            this.userRepository.getByIds(authorIds),
+            this.commentLikeRepository.getLikeCountBatch(commentIds),
+            currentUserId
+                ? this.commentLikeRepository.getLikedCommentIds(currentUserId, commentIds)
+                : Promise.resolve(new Set<number>()),
+        ]);
+
+        const usernameMap = new Map(users.map(u => [u.id, u.username]));
+
+        return comments.map(c => new CommentDto(
+            c.id,
+            c.isDeleted ? '[comment deleted]' : c.content,
+            c.postId,
+            c.authorId,
+            c.parentId,
+            c.isDeleted,
+            c.isFlagged,
+            [],
+            c.createdAt,
+            c.updatedAt,
+            usernameMap.get(c.authorId),
+            likeCountMap.get(c.id) ?? 0,
+            likedSet.has(c.id)
+        ));
     }
 
     private async buildCommentDto(comment: Comment, currentUserId?: number): Promise<CommentDto> {

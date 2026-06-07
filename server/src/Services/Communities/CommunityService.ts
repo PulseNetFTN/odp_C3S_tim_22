@@ -2,6 +2,7 @@ import { CommunityDto } from '../../Domain/DTOs/community/CommunityDto';
 import { Community } from '../../Domain/models/Community';
 import { ErrorCode } from '../../Domain/enums/ErrorCode';
 import { CommunityRole } from '../../Domain/enums/CommunityRole';
+import { UserRole } from '../../Domain/enums/UserRole';
 import { ICommunityRepository } from '../../Domain/repositories/communities/ICommunityRepository';
 import { ICommunityMemberRepository } from '../../Domain/repositories/communities/ICommunityMemberRepository';
 import { IAuditService } from '../../Domain/services/audit/IAuditService';
@@ -41,9 +42,14 @@ export class CommunityService implements ICommunityService {
 
         const community = communityResult.data;
 
-        await this.communityMemberRepository.addMember(
+        const memberAdded = await this.communityMemberRepository.addMember(
             input.creatorId, community.id, CommunityRole.Moderator, 'active'
         );
+
+        if (!memberAdded) {
+            await this.communityRepository.delete(community.id);
+            return { success: false, message: 'Failed to create community', errorCode: ErrorCode.INTERNAL_ERROR };
+        }        
 
         const dto = await this.buildCommunityDto(community);
         return { success: true, data: dto };
@@ -60,25 +66,25 @@ export class CommunityService implements ICommunityService {
 
     async getAllCommunities(): Promise<ServiceResult<CommunityDto[]>> {
         const communities = await this.communityRepository.getAll();
-        const dtos = await Promise.all(communities.map(c => this.buildCommunityDto(c)));
+        const dtos = await this.buildCommunityDtos(communities);
         return { success: true, data: dtos };
     }
 
     async getPublicCommunities(): Promise<ServiceResult<CommunityDto[]>> {
         const communities = await this.communityRepository.getPublic();
-        const dtos = await Promise.all(communities.map(c => this.buildCommunityDto(c)));
+        const dtos = await this.buildCommunityDtos(communities);
         return { success: true, data: dtos };
     }
 
     async getUserCommunities(input: GetUserCommunitiesInput): Promise<ServiceResult<CommunityDto[]>> {
         const communities = await this.communityRepository.getByUserId(input.userId);
-        const dtos = await Promise.all(communities.map(c => this.buildCommunityDto(c)));
+        const dtos = await this.buildCommunityDtos(communities);
         return { success: true, data: dtos };
     }
 
     async searchCommunities(input: SearchCommunitiesInput): Promise<ServiceResult<CommunityDto[]>> {
         const communities = await this.communityRepository.searchByName(input.query);
-        const dtos = await Promise.all(communities.map(c => this.buildCommunityDto(c)));
+        const dtos = await this.buildCommunityDtos(communities);
         return { success: true, data: dtos };
     }
 
@@ -89,9 +95,12 @@ export class CommunityService implements ICommunityService {
         }
         const existing = existingResult.data;
 
-        const memberResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (!memberResult.ok || memberResult.data.role !== CommunityRole.Moderator) {
-            return { success: false, message: 'Only moderators can update the community', errorCode: ErrorCode.FORBIDDEN };
+        const isAdmin = input.requesterRole === UserRole.Admin;
+        if (!isAdmin) {
+            const memberResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
+            if (!memberResult.ok || memberResult.data.role !== CommunityRole.Moderator) {
+                return { success: false, message: 'Only moderators can update the community', errorCode: ErrorCode.FORBIDDEN };
+            }
         }
 
         const updateResult = await this.communityRepository.update(
@@ -113,9 +122,12 @@ export class CommunityService implements ICommunityService {
         }
         const existing = existingResult.data;
 
-        const memberResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (!memberResult.ok || memberResult.data.role !== CommunityRole.Moderator) {
-            return { success: false, message: 'Only moderators can delete the community', errorCode: ErrorCode.FORBIDDEN };
+        const isAdmin = input.requesterRole === UserRole.Admin;
+        if (!isAdmin) {
+            const memberResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
+            if (!memberResult.ok || memberResult.data.role !== CommunityRole.Moderator) {
+                return { success: false, message: 'Only moderators can delete the community', errorCode: ErrorCode.FORBIDDEN };
+            }
         }
 
         const memberCount = await this.communityMemberRepository.getMemberCount(input.communityId);
@@ -166,7 +178,8 @@ export class CommunityService implements ICommunityService {
             return { success: false, message: 'You are not a member of this community', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        if (memberResult.data.role === CommunityRole.Moderator) {
+        const isAdmin = input.requesterRole === UserRole.Admin;
+        if (!isAdmin && memberResult.data.role === CommunityRole.Moderator) {
             return { success: false, message: 'Moderators cannot leave. Transfer ownership first.', errorCode: ErrorCode.FORBIDDEN };
         }
 
@@ -176,6 +189,17 @@ export class CommunityService implements ICommunityService {
         }
 
         return { success: true, data: true };
+    }
+
+    private async buildCommunityDtos(communities: Community[]): Promise<CommunityDto[]> {
+        if (communities.length === 0) return [];
+        const ids = communities.map(c => c.id);
+        const countMap = await this.communityMemberRepository.getMemberCountBatch(ids);
+        return communities.map(c => new CommunityDto(
+            c.id, c.name, c.description, c.rules,
+            c.type, c.avatar, c.creatorId,
+            countMap.get(c.id) ?? 0, c.createdAt
+        ));
     }
 
     private async buildCommunityDto(community: Community): Promise<CommunityDto> {

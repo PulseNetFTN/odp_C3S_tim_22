@@ -7,6 +7,7 @@ export type UpdateProfileInput = {
     bio?: string;
     profileImage?: string;
     password?: string;
+    currentPassword?: string;
 };
 
 export type UpdateRoleInput = {

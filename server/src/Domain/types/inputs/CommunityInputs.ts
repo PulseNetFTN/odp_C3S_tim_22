@@ -1,5 +1,6 @@
 import { CommunityRole } from '../../enums/CommunityRole';
 import { CommunityType } from '../../enums/CommunityType';
+import { UserRole } from '../../enums/UserRole';
 
 export type CreateCommunityInput = {
     name: string;
@@ -25,6 +26,7 @@ export type SearchCommunitiesInput = {
 export type UpdateCommunityInput = {
     communityId: number;
     requesterId: number;
+    requesterRole: UserRole;
     name: string;
     description: string | null;
     rules: string | null;
@@ -35,6 +37,7 @@ export type UpdateCommunityInput = {
 export type DeleteCommunityInput = {
     communityId: number;
     requesterId: number;
+    requesterRole: UserRole;
 };
 
 export type JoinCommunityInput = {
@@ -45,6 +48,7 @@ export type JoinCommunityInput = {
 export type LeaveCommunityInput = {
     userId: number;
     communityId: number;
+    requesterRole: UserRole;
 };
 
 export type GetCommunityMembersInput = {
@@ -55,6 +59,7 @@ export type UpdateCommunityMemberRoleInput = {
     communityId: number;
     targetUserId: number;
     requesterId: number;
+    requesterRole: UserRole;
     role: CommunityRole;
 };
 
@@ -62,6 +67,7 @@ export type UpdateCommunityMemberStatusInput = {
     communityId: number;
     targetUserId: number;
     requesterId: number;
+    requesterRole: UserRole;
     status: string;
 };
 
@@ -69,4 +75,5 @@ export type RemoveCommunityMemberInput = {
     communityId: number;
     targetUserId: number;
     requesterId: number;
+    requesterRole: UserRole;
 };

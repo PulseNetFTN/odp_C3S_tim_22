@@ -1,6 +1,7 @@
 import { CommunityMemberDto } from '../../Domain/DTOs/community/CommunityMemberDto';
 import { ErrorCode } from '../../Domain/enums/ErrorCode';
 import { CommunityRole } from '../../Domain/enums/CommunityRole';
+import { UserRole } from '../../Domain/enums/UserRole';
 import { CommunityMember } from '../../Domain/models/CommunityMember';
 import { ICommunityMemberRepository } from '../../Domain/repositories/communities/ICommunityMemberRepository';
 import { IAuditService } from '../../Domain/services/audit/IAuditService';
@@ -30,9 +31,12 @@ export class CommunityMemberService implements ICommunityMemberService {
             return { success: false, message: 'Member not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const requesterResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (!requesterResult.ok || requesterResult.data.role !== CommunityRole.Moderator) {
-            return { success: false, message: 'Only moderators can change roles', errorCode: ErrorCode.FORBIDDEN };
+        const isAdmin = input.requesterRole === UserRole.Admin;
+        if (!isAdmin) {
+            const requesterResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
+            if (!requesterResult.ok || requesterResult.data.role !== CommunityRole.Moderator) {
+                return { success: false, message: 'Only moderators can change roles', errorCode: ErrorCode.FORBIDDEN };
+            }
         }
 
         const oldRole = existingResult.data.role;
@@ -59,9 +63,12 @@ export class CommunityMemberService implements ICommunityMemberService {
             return { success: false, message: 'Member not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const requesterResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (!requesterResult.ok || requesterResult.data.role !== CommunityRole.Moderator) {
-            return { success: false, message: 'Only moderators can change member status', errorCode: ErrorCode.FORBIDDEN };
+        const isAdmin = input.requesterRole === UserRole.Admin;
+        if (!isAdmin) {
+            const requesterResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
+            if (!requesterResult.ok || requesterResult.data.role !== CommunityRole.Moderator) {
+                return { success: false, message: 'Only moderators can change member status', errorCode: ErrorCode.FORBIDDEN };
+            }
         }
 
         const oldStatus = existingResult.data.status;
@@ -88,9 +95,12 @@ export class CommunityMemberService implements ICommunityMemberService {
             return { success: false, message: 'Member not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const requesterResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (!requesterResult.ok || requesterResult.data.role !== CommunityRole.Moderator) {
-            return { success: false, message: 'Only moderators can remove members', errorCode: ErrorCode.FORBIDDEN };
+        const isAdmin = input.requesterRole === UserRole.Admin;
+        if (!isAdmin) {
+            const requesterResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
+            if (!requesterResult.ok || requesterResult.data.role !== CommunityRole.Moderator) {
+                return { success: false, message: 'Only moderators can remove members', errorCode: ErrorCode.FORBIDDEN };
+            }
         }
 
         if (existingResult.data.role === CommunityRole.Moderator) {

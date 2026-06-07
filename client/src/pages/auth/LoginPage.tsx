@@ -33,7 +33,7 @@ export default function LoginPage() {
             });
             const data = await res.json();
             if (!data.success) { setError(data.message || 'Login failed'); return; }
-            login(data.data);
+            login(data.data.accessToken);
             navigate('/feed');
         } catch {
             setError('Connection error. Please try again.');

@@ -4,6 +4,7 @@ import { RepositoryResult } from '../../types/RepositoryResult';
 
 export interface ICommunityMemberRepository {
     getMemberCount(communityId: number): Promise<number>;
+    getMemberCountBatch(communityIds: number[]): Promise<Map<number, number>>;
     getMember(userId: number, communityId: number): Promise<RepositoryResult<CommunityMember>>;
     getMembers(communityId: number): Promise<CommunityMember[]>;
     getMemberUserIds(communityId: number): Promise<number[]>;

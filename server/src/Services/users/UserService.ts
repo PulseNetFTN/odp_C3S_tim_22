@@ -63,7 +63,15 @@ export class UserService implements IUserService {
         }
 
         let passwordHash = existing.passwordHash;
-        if (input.password) {
+
+        if (input.password?.trim()) {
+            if(!input.currentPassword) {
+              return { success: false, message: 'Current password is required to set a new one', errorCode: ErrorCode.VALIDATION_ERROR };               
+            }
+            const valid = await bcrypt.compare(input.currentPassword, existing.passwordHash);
+            if (!valid) {
+                return { success: false, message: 'Current password is incorrect', errorCode: ErrorCode.UNAUTHORIZED };
+            }           
             passwordHash = await bcrypt.hash(input.password, this.saltRounds);
         }
 
@@ -85,9 +93,9 @@ export class UserService implements IUserService {
         }
         const user = userResult.data;
 
-        const [posts, comments, followerCount, followingCount] = await Promise.all([
-            this.postRepository.getByAuthorId(userId),
-            this.commentRepository.getByAuthor(userId),
+        const [postCount, commentCount, followerCount, followingCount] = await Promise.all([
+            this.postRepository.getPostCountByAuthor(userId),
+            this.commentRepository.getCommentCountByAuthor(userId),
             this.userFollowRepository.getFollowerCount(userId),
             this.userFollowRepository.getFollowingCount(userId),
         ]);
@@ -99,10 +107,10 @@ export class UserService implements IUserService {
 
         const profileDto = new UserProfileDto(
             user.id, user.username, user.email, user.firstName, user.lastName,
-            user.bio, user.profileImage, user.role, new Date(),
+            user.bio, user.profileImage, user.role, user.createdAt,
             {
-                postCount: posts.length,
-                commentCount: comments.length,
+                postCount,
+                commentCount,
                 followerCount,
                 followingCount,
             },

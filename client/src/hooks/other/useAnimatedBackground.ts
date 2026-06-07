@@ -29,32 +29,46 @@ export function useAnimatedBackground(ekgMode: EkgMode = 'fullpage'): AnimatedBa
         const t = setTimeout(() => setMounted(true), 60);
 
         function resize() {
-            const W = window.innerWidth;
-            const H = window.innerHeight;
+        const dpr = window.devicePixelRatio || 1;
+        const W = window.innerWidth;
+        const H = window.innerHeight;
 
-            if (pCanvasRef.current) {
-                pCanvasRef.current.width = W;
-                pCanvasRef.current.height = H;
-            }
-            setPDims({ W, H });
-
-            if (ekgWrapRef.current && eCanvasRef.current) {
-                const ekgH = ekgWrapRef.current.offsetHeight;
-                eCanvasRef.current.width = W;
-                eCanvasRef.current.height = ekgH;
-                setEkgDims({ W, H: ekgH });
+        if (pCanvasRef.current) {
+            pCanvasRef.current.width = W * dpr;
+            pCanvasRef.current.height = H * dpr;
+            const ctx = pCanvasRef.current.getContext('2d');
+            if (ctx) {
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // reset + scale in one call
             }
         }
+        setPDims({ W, H });
+
+        if (ekgWrapRef.current && eCanvasRef.current) {
+            const ekgH = ekgWrapRef.current.offsetHeight;
+            eCanvasRef.current.width = W * dpr;
+            eCanvasRef.current.height = ekgH * dpr;
+            const ctx = eCanvasRef.current.getContext('2d');
+            if (ctx) {
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+            setEkgDims({ W, H: ekgH });
+        }
+    }
 
         resize();
         window.addEventListener('resize', resize);
 
         const observer = new ResizeObserver(() => {
             if (!ekgWrapRef.current || !eCanvasRef.current) return;
+            const dpr = window.devicePixelRatio || 1;
             const W = window.innerWidth;
             const ekgH = ekgWrapRef.current.offsetHeight;
-            eCanvasRef.current.width = W;
-            eCanvasRef.current.height = ekgH;
+            eCanvasRef.current.width = W * dpr;
+            eCanvasRef.current.height = ekgH * dpr;
+            const ctx = eCanvasRef.current.getContext('2d');
+            if (ctx) {
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
             setEkgDims({ W, H: ekgH });
         });
         if (ekgWrapRef.current) observer.observe(ekgWrapRef.current);

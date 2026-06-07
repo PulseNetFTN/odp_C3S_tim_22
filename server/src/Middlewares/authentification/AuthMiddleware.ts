@@ -16,18 +16,20 @@ declare global {
     }
 }
 
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+if (!ACCESS_SECRET) {
+    throw new Error('JWT_ACCESS_SECRET is required');
+}
+
 export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
     const authHeader = req.headers.authorization;
-
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         res.status(401).json({ success: false, message: 'Missing token' });
         return;
     }
-
     const token = authHeader.split(' ')[1];
-
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET ?? '') as JwtPayload;
+        const decoded = jwt.verify(token, ACCESS_SECRET!) as JwtPayload;
         req.user = decoded;
         next();
     } catch {
@@ -35,7 +37,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
     }
 };
 
-export const optionalAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
+export const optionalAuthenticate = (req: Request, _res: Response, next: NextFunction): void => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         next();
@@ -43,10 +45,10 @@ export const optionalAuthenticate = (req: Request, res: Response, next: NextFunc
     }
     const token = authHeader.split(' ')[1];
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET ?? '') as JwtPayload;
+        const decoded = jwt.verify(token, ACCESS_SECRET!) as JwtPayload;
         req.user = decoded;
     } catch {
-        // invalid token ignore, treat as unauthenticated
+        // invalid token, treat as unauthenticated
     }
     next();
 };

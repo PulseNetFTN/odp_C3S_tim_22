@@ -17,7 +17,7 @@ export function useComments({ postId, token }: UseCommentsOptions) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [sortBy, setSortBy] = useState<CommentSortOption>('newest');
-    const [hasMore, setHasMore] = useState(false);
+    const hasMore = false;
     const [totalComments, setTotalComments] = useState(0);
 
     const pendingLikesRef = useRef<Set<number>>(new Set());
@@ -38,10 +38,11 @@ export function useComments({ postId, token }: UseCommentsOptions) {
 
             if (res.success && res.data) {
                 const allComments = Array.isArray(res.data) ? res.data : [];
-                const rootComments = allComments.filter(c => !c.parentId && !c.parent_id);
+                const rootComments = allComments.filter(c => !c.parentId);
                 
                 setComments(rootComments);
-                setTotalComments(rootComments.length);
+                const total = allComments.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0);
+                setTotalComments(total);
             } else {
                 setError(res.message ?? 'Failed to load comments.');
                 setComments([]);
@@ -61,12 +62,12 @@ export function useComments({ postId, token }: UseCommentsOptions) {
 
     const sortedComments = [...comments].sort((a, b) => {
         if (sortBy === 'newest') {
-            const dateA = new Date(a.createdAt ?? a.created_at ?? 0).getTime();
-            const dateB = new Date(b.createdAt ?? b.created_at ?? 0).getTime();
+            const dateA = new Date(a.createdAt ?? 0).getTime();
+            const dateB = new Date(b.createdAt ?? 0).getTime();
             return dateB - dateA;
         }
-        const likesA = a._likeCount ?? a.likesCount ?? a.likes_count ?? 0;
-        const likesB = b._likeCount ?? b.likesCount ?? b.likes_count ?? 0;
+        const likesA = a._likeCount ?? a.likesCount ?? 0;
+        const likesB = b._likeCount ?? b.likesCount ?? 0;
         return likesB - likesA;
     });
 
@@ -120,7 +121,7 @@ export function useComments({ postId, token }: UseCommentsOptions) {
         setComments(prev => prev.map(comment => {
             if (comment.id !== id) return comment;
             
-            const currentLikes = comment._likeCount ?? comment.likesCount ?? comment.likes_count ?? 0;
+            const currentLikes = comment._likeCount ?? comment.likesCount ?? 0;
             const newLikes = isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1;
             
             return {
@@ -128,9 +129,7 @@ export function useComments({ postId, token }: UseCommentsOptions) {
                 _likeCount: newLikes,
                 _optimisticLike: true,
                 likesCount: newLikes,
-                likes_count: newLikes,
                 isLiked: !isCurrentlyLiked,
-                is_liked: !isCurrentlyLiked,
             };
         }));
         
@@ -140,17 +139,31 @@ export function useComments({ postId, token }: UseCommentsOptions) {
             if (pendingLikesRef.current.has(id)) return;
             pendingLikesRef.current.add(id);
             
+            const revertLike = () => {
+                setComments(prev => prev.map(comment => {
+                    if (comment.id !== id) return comment;
+                    const current = comment._likeCount ?? comment.likesCount ?? 0;
+                    return {
+                        ...comment,
+                        _likeCount: isCurrentlyLiked ? current + 1 : current - 1,
+                        likesCount: isCurrentlyLiked ? current + 1 : current - 1,
+                        isLiked: isCurrentlyLiked,
+                        _optimisticLike: false,
+                    };
+                }));
+            };
+
             try {
                 const res = isCurrentlyLiked
                     ? await CommentAPIService.unlikeComment(token, id)
                     : await CommentAPIService.likeComment(token, id);
-                
+
                 if (!res.success) {
-                    await fetchComments();
+                    revertLike();
                 }
             } catch (error) {
                 console.error('💥 [toggleLike] Error:', error);
-                await fetchComments();
+                revertLike();
             } finally {
                 pendingLikesRef.current.delete(id);
             }
@@ -161,7 +174,7 @@ export function useComments({ postId, token }: UseCommentsOptions) {
         }, 300);
         
         return () => clearTimeout(timeoutId);
-    }, [token, fetchComments]);
+    }, [token]);
 
     const loadMore = useCallback(() => {}, []);
 

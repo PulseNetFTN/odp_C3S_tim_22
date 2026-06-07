@@ -47,7 +47,7 @@ export default function RegisterPage() {
             });
             const data = await res.json();
             if (!data.success) { setError(data.message || 'Registration failed'); return; }
-            login(data.data);
+            login(data.data.accessToken);
             navigate('/feed');
         } catch {
             setError('Connection error. Please try again.');
